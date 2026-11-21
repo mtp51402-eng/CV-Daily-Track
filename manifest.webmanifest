@@ -1,0 +1,21 @@
+{
+  "name": "മദ്രസ ദൈനംദിന ട്രാക്കർ",
+  "short_name": "മദ്രസ ട്രാക്കർ",
+  "description": "മദ്രസ വിദ്യാർത്ഥികളുടെ ദൈനംദിന ആരാധനാ രേഖ — ഓഫ്‌ലൈൻ ഉപയോഗിക്കാം",
+  "lang": "ml",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "id": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ecfdf5",
+  "theme_color": "#047857",
+  "categories": ["education", "lifestyle"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
