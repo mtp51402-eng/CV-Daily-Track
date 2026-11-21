@@ -1,0 +1,2709 @@
+```html
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daily Track — A H CV</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+Malayalam:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    :root {
+      --bg-canvas-start: #ecfdf5;
+      --bg-canvas-mid: #f0fdfa;
+      --bg-canvas-end: #fefce8;
+    }
+
+    body {
+      font-family: 'Noto Sans Malayalam', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background:
+        radial-gradient(circle at 8% 6%, rgba(16, 185, 129, 0.18), transparent 36%),
+        radial-gradient(circle at 92% 12%, rgba(245, 158, 11, 0.17), transparent 40%),
+        radial-gradient(circle at 85% 88%, rgba(99, 102, 241, 0.11), transparent 42%),
+        linear-gradient(155deg, var(--bg-canvas-start) 0%, var(--bg-canvas-mid) 52%, var(--bg-canvas-end) 100%);
+      min-height: 100vh;
+      color: #0f172a;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow:
+        0 12px 28px -6px rgba(15, 23, 42, 0.06),
+        0 4px 12px -3px rgba(16, 185, 129, 0.07),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
+    }
+
+    .hero-banner {
+      background: linear-gradient(125deg, #064e3b 0%, #047857 45%, #0f766e 78%, #b45309 135%);
+      box-shadow: 0 16px 32px -10px rgba(4, 120, 87, 0.36);
+    }
+
+    .card-hover {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        0 16px 30px -8px rgba(15, 23, 42, 0.09),
+        0 6px 14px -4px rgba(16, 185, 129, 0.12);
+    }
+
+    .pill-choice {
+      transition: all 0.16s ease;
+    }
+
+    .pill-choice:active {
+      transform: scale(0.96);
+    }
+
+    /* Subtle corner label badge (A H CV) */
+    .corner-brand-badge {
+      position: fixed;
+      right: 12px;
+      bottom: 12px;
+      z-index: 40;
+      letter-spacing: 0.14em;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      backdrop-filter: blur(8px);
+    }
+  </style>
+</head>
+<body class="pb-16 text-slate-900 selection:bg-emerald-200 selection:text-emerald-950">
+  <!-- Subtle A H CV corner label -->
+  <div
+    aria-hidden="true"
+    class="corner-brand-badge px-2.5 py-1 rounded-full bg-slate-900/75 text-emerald-200 text-[10px] font-bold border border-emerald-400/25 shadow-md pointer-events-none select-none"
+  >
+    A H CV
+  </div>
+
+  <!-- Toast Banner -->
+  <div
+    id="toastBanner"
+    role="status"
+    aria-live="polite"
+    class="fixed top-4 left-1/2 -translate-x-1/2 z-50 hidden max-w-md w-[92%] px-4 py-3 rounded-2xl bg-slate-900 text-white text-xs sm:text-sm font-semibold shadow-2xl border border-emerald-400/30 flex items-center justify-between gap-3"
+  >
+    <span id="toastMessage"></span>
+    <button
+      id="toastCloseBtn"
+      type="button"
+      aria-label="അടയ്ക്കുക"
+      class="text-emerald-300 hover:text-white font-bold px-1.5"
+    >
+      ✕
+    </button>
+  </div>
+
+  <div class="max-w-4xl mx-auto px-3.5 sm:px-6 pt-4 sm:pt-7 space-y-4 sm:space-y-5">
+    <!-- ========================================================= -->
+    <!-- SCREEN 1: ENTRY / SETUP PAGE -->
+    <!-- Only: Student Name (hidden Cv 313 / Madrasa code trigger),-->
+    <!-- per-child Class, '+' add child under same Madrasa, -->
+    <!-- Madrasa selector, and 'സേവ് ആൻഡ് തുറക്കുക' button. -->
+    <!-- ========================================================= -->
+    <section
+      id="entryScreenSection"
+      class="glass-card rounded-3xl border border-emerald-900/10 overflow-hidden"
+    >
+      <div class="hero-banner px-4 sm:px-6 py-4 sm:py-5 text-white flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center text-lg font-extrabold text-amber-300 shadow-inner">
+            DT
+          </div>
+          <div>
+            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-white">
+              Daily Track
+            </h1>
+            <p class="text-xs sm:text-sm text-emerald-100/95 font-medium mt-0.5">
+              വിദ്യാർത്ഥി വിവരങ്ങൾ
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 sm:p-6 space-y-4">
+        <!-- Primary Child: Name + Per-child Class + "+" Add Child button -->
+        <div class="rounded-2xl bg-gradient-to-br from-emerald-50/70 via-white to-amber-50/50 border border-emerald-200/80 p-3.5 sm:p-4 space-y-3">
+          <div class="flex items-center justify-between gap-2">
+            <label for="accessEntryInput" class="block text-xs sm:text-sm font-extrabold text-slate-800">
+              വിദ്യാർത്ഥിയുടെ പേര്
+            </label>
+            <button
+              id="addExtraChildNameBtn"
+              type="button"
+              class="text-xs font-extrabold text-emerald-800 hover:text-emerald-950 bg-emerald-100 hover:bg-emerald-200 px-3 py-1 rounded-xl border border-emerald-300/80 transition"
+            >
+              + പേര് ചേർക്കുക
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+            <div class="sm:col-span-7">
+              <input
+                id="accessEntryInput"
+                type="text"
+                autocomplete="off"
+                placeholder="വിദ്യാർത്ഥിയുടെ പേര്"
+                class="w-full px-4 py-3 rounded-2xl bg-white border-2 border-emerald-200/90 text-sm text-slate-900 font-semibold placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition"
+              />
+            </div>
+            <div class="sm:col-span-5">
+              <select
+                id="primaryChildClassSelect"
+                aria-label="കുട്ടിയുടെ ക്ലാസ്"
+                class="w-full px-3.5 py-3 rounded-2xl bg-white border-2 border-emerald-200/90 text-xs sm:text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              ></select>
+            </div>
+          </div>
+
+          <!-- Extra Children Rows (Each with its own Name & Class under the same Madrasa) -->
+          <div id="extraChildrenInputsContainer" class="space-y-2.5 hidden"></div>
+        </div>
+
+        <!-- Madrasa Selector -->
+        <div>
+          <label for="studentMadrasaSelect" class="block text-xs sm:text-sm font-extrabold text-slate-800 mb-1.5">
+            മദ്രസ
+          </label>
+          <select
+            id="studentMadrasaSelect"
+            aria-label="മദ്രസ"
+            class="w-full px-4 py-3 rounded-2xl bg-gradient-to-r from-teal-50/80 to-emerald-50/70 border-2 border-teal-200/90 text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          >
+            <option value="">മദ്രസ തിരഞ്ഞെടുക്കുക</option>
+          </select>
+        </div>
+
+        <!-- Single Primary Action Button (No extra notes below, no duplicate save boxes) -->
+        <button
+          id="accessSubmitBtn"
+          type="button"
+          class="w-full px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 active:scale-[0.98] text-white text-sm font-extrabold shadow-md shadow-emerald-600/25 transition"
+        >
+          സേവ് ആൻഡ് തുറക്കുക
+        </button>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- SCREEN 2: DAILY TRACKER & MONTHLY POINTS WORKSPACE -->
+    <!-- ========================================================= -->
+    <div id="trackerWorkspaceContainer" class="hidden space-y-4 sm:space-y-5">
+      <!-- Top Header, Date Controls, Conditional Multi-Child Bar & Non-Prayer Toggle -->
+      <header class="glass-card rounded-3xl border border-emerald-900/10 overflow-hidden">
+        <div class="hero-banner px-4 sm:px-6 py-4 sm:py-5 text-white">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <button
+                id="backToEntryScreenBtn"
+                type="button"
+                class="px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 border border-white/25 text-white text-xs font-extrabold transition shrink-0"
+              >
+                ← തിരികെ
+              </button>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h2 class="text-lg sm:text-xl font-extrabold tracking-tight text-white">
+                    Daily Track
+                  </h2>
+                  <span
+                    id="fridayBadge"
+                    class="hidden text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 shadow-xs"
+                  >
+                    വെള്ളിയാഴ്ച
+                  </span>
+                </div>
+                <p id="activeProfileBanner" class="text-xs sm:text-sm text-emerald-100/95 font-medium mt-0.5">
+                  ദൈനംദിന അമൽ &amp; ശീല രേഖപ്പെടുത്തൽ
+                </p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-2.5">
+              <div class="px-3 py-1.5 rounded-2xl bg-white/12 border border-white/20 text-right">
+                <span class="block text-[10px] uppercase tracking-wider text-emerald-200 font-semibold">
+                  പൂർത്തീകരണം
+                </span>
+                <span id="completionPercentBadge" class="text-sm sm:text-base font-extrabold text-amber-300">
+                  0%
+                </span>
+              </div>
+              <div class="px-3 py-1.5 rounded-2xl bg-amber-400/20 border border-amber-300/35 text-right">
+                <span class="block text-[10px] uppercase tracking-wider text-amber-200 font-semibold">
+                  ഇന്നത്തെ പോയിന്റ്
+                </span>
+                <span id="todayPointsBadge" class="text-sm sm:text-base font-extrabold text-white">
+                  0 pts
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-4 sm:p-6 space-y-4">
+          <!-- Date Navigation Bar -->
+          <div class="flex flex-wrap items-center justify-between gap-2 bg-gradient-to-r from-emerald-50/90 via-teal-50/70 to-amber-50/80 p-2.5 sm:p-3 rounded-2xl border border-emerald-200/70">
+            <button
+              id="prevDayBtn"
+              type="button"
+              class="px-3.5 py-2 rounded-xl bg-white hover:bg-emerald-50 active:scale-[0.98] text-slate-800 border border-emerald-200/80 text-xs sm:text-sm font-bold shadow-2xs transition"
+            >
+              ← മുമ്പ്
+            </button>
+
+            <div class="flex items-center gap-2 flex-1 justify-center min-w-[180px]">
+              <input
+                id="datePickerInput"
+                type="date"
+                aria-label="തീയതി തിരഞ്ഞെടുക്കുക"
+                class="px-3 py-1.5 rounded-xl bg-white border border-emerald-300/80 text-xs sm:text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs"
+              />
+              <span
+                id="dayNameDisplay"
+                class="px-3 py-1.5 rounded-xl bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-2xs"
+              >
+                ദിവസം
+              </span>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+              <button
+                id="nextDayBtn"
+                type="button"
+                class="px-3.5 py-2 rounded-xl bg-white hover:bg-emerald-50 active:scale-[0.98] text-slate-800 border border-emerald-200/80 text-xs sm:text-sm font-bold shadow-2xs transition"
+              >
+                അടുത്തത് →
+              </button>
+              <button
+                id="todayBtn"
+                type="button"
+                class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-[0.98] text-white text-xs sm:text-sm font-bold shadow-sm transition"
+              >
+                ഇന്ന്
+              </button>
+            </div>
+          </div>
+
+          <!-- Conditional Child Selector Bar (Shown ONLY when multiple children were added together) -->
+          <div
+            id="multiChildSelectorBar"
+            class="hidden rounded-2xl bg-gradient-to-r from-teal-50 via-emerald-50 to-amber-50/75 border border-teal-300/85 p-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5"
+          >
+            <div>
+              <span class="block text-[11px] font-extrabold uppercase tracking-wider text-teal-800">
+                ഏത് കുട്ടിയുടേതാണ് അപ്ഡേറ്റ് ചെയ്യുന്നത്?
+              </span>
+              <p id="multiChildGroupLabel" class="text-xs text-slate-600 mt-0.5"></p>
+            </div>
+            <div id="multiChildPillsContainer" class="flex flex-wrap gap-1.5"></div>
+          </div>
+
+          <!-- Non-Prayer / Excused Time Toggle ("നിസ്കരിക്കാൻ പറ്റാത്ത സമയം") -->
+          <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-4 bg-gradient-to-r from-amber-50 via-orange-50/75 to-amber-50 rounded-2xl p-3.5 sm:p-4 border border-amber-300/80">
+            <div>
+              <p class="text-sm font-extrabold text-amber-950 flex items-center gap-2">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                നിസ്കരിക്കാൻ പറ്റാത്ത സമയം
+              </p>
+              <p class="text-xs text-amber-900/85 mt-0.5 leading-relaxed">
+                ഇത് ഓൺ ആക്കിയാൽ ഫർള് നിസ്കാരങ്ങൾ, സുന്നത്ത് നിസ്കാരങ്ങൾ, ളുഹാ നിസ്കാരം, വിത്ർ നിസ്കാരം, തഹജ്ജുദ് നിസ്കാരം, സൂറത്തുകളും ഖുർആൻ ഭാഗവും, വെള്ളിയാഴ്ചയിലെ സൂറത്തുൽ കഹ്ഫ് &amp; നഖം വെട്ടൽ എന്നിവ തനിയെ ഹൈഡ് ആകും.
+              </p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer shrink-0 select-none">
+              <input id="nonPrayerToggle" type="checkbox" class="sr-only peer" />
+              <div class="w-12 h-7 bg-slate-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-400 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-amber-600"></div>
+              <span id="nonPrayerStatusText" class="ml-2.5 text-xs font-extrabold text-slate-600">ഓഫ്</span>
+            </label>
+          </div>
+        </div>
+      </header>
+
+      <!-- ======================================================= -->
+      <!-- HIDDEN MAIN ADMIN PANEL (Triggered via "Cv 313") -->
+      <!-- ======================================================= -->
+      <section
+        id="adminPanelSection"
+        class="hidden glass-card rounded-3xl shadow-xl border-2 border-emerald-600/35 p-4 sm:p-6 space-y-5"
+      >
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-emerald-100">
+          <div>
+            <span class="inline-block text-[11px] font-extrabold uppercase tracking-wider px-3 py-0.5 rounded-full bg-gradient-to-r from-emerald-700 to-teal-700 text-white shadow-2xs">
+              Main Admin Panel
+            </span>
+            <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 mt-1">
+              മദ്രസ കോഡുകൾ &amp; ഉസ്താദ് ആക്‌സസ് നിയന്ത്രണം
+            </h2>
+            <p class="text-xs text-slate-600 mt-0.5">
+              മദ്രസകൾ ചേർക്കാനും കോഡുകൾ നിശ്ചയിക്കാനും ഉസ്താദുമാർക്ക് ലിസ്റ്റ് കാണിക്കണോ എന്ന് തീരുമാനിക്കാനും ഇവിടെ സാധിക്കും.
+            </p>
+          </div>
+          <button
+            id="exitSpecialModeBtn"
+            type="button"
+            class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold transition"
+          >
+            ട്രാക്കറിലേക്ക് മടങ്ങുക
+          </button>
+        </div>
+
+        <!-- Ustad Access Visibility Toggle Controlled by Admin -->
+        <div class="rounded-2xl bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-200/90 p-4 flex items-center justify-between gap-4">
+          <div>
+            <p class="text-sm font-extrabold text-teal-950">
+              ഉസ്താദുമാർക്ക് മദ്രസ കോഡ് വഴി ലിസ്റ്റ് കാണിക്കാൻ അനുവദിക്കുക
+            </p>
+            <p class="text-xs text-teal-900/80 mt-0.5">
+              ഓഫ് ചെയ്താൽ മദ്രസ കോഡ് നൽകുമ്പോൾ ഉസ്താദ് ലിസ്റ്റ് തുറക്കുന്നതല്ല.
+            </p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer shrink-0 select-none">
+            <input id="ustadAccessToggle" type="checkbox" class="sr-only peer" />
+            <div class="w-12 h-7 bg-slate-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-teal-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-teal-600"></div>
+            <span id="ustadAccessStatusLabel" class="ml-2.5 text-xs font-extrabold text-teal-900">ഓൺ</span>
+          </label>
+        </div>
+
+        <!-- 1A. Create / Update Madrasa & Custom Code -->
+        <div class="rounded-2xl bg-gradient-to-br from-emerald-50/75 to-white border border-emerald-200/80 p-4 sm:p-5">
+          <h3 class="text-sm sm:text-base font-extrabold text-emerald-950 mb-3">
+            1. മദ്രസയും പ്രത്യേക കോഡും സെറ്റ് ചെയ്യുക
+          </h3>
+          <form id="adminMadrasaForm" class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+            <div class="sm:col-span-6">
+              <label for="adminMadrasaName" class="block text-xs font-bold text-slate-700 mb-1">
+                മദ്രസയുടെ പേര്
+              </label>
+              <input
+                id="adminMadrasaName"
+                type="text"
+                required
+                placeholder="ഉദാ: അൻവാറുൽ ഹുദാ മദ്രസ"
+                class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-emerald-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+            <div class="sm:col-span-4">
+              <label for="adminMadrasaCode" class="block text-xs font-bold text-slate-700 mb-1">
+                മദ്രസ കോഡ്
+              </label>
+              <input
+                id="adminMadrasaCode"
+                type="text"
+                required
+                placeholder="ഉദാ: MD-01"
+                class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-emerald-200 text-sm font-bold uppercase focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+            <div class="sm:col-span-2 flex items-end">
+              <button
+                type="submit"
+                class="w-full px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-extrabold shadow-xs transition"
+              >
+                സേവ്
+              </button>
+            </div>
+          </form>
+
+          <div id="adminMadrasaList" class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
+        </div>
+
+        <!-- 1B. Manage Students per Madrasa -->
+        <div class="rounded-2xl bg-gradient-to-br from-amber-50/75 to-white border border-amber-200/80 p-4 sm:p-5">
+          <h3 class="text-sm sm:text-base font-extrabold text-amber-950 mb-3">
+            2. മദ്രസ തിരിച്ചുള്ള വിദ്യാർത്ഥി ലിസ്റ്റ് &amp; പോയിന്റ് വിവരങ്ങൾ
+          </h3>
+          <form id="adminStudentForm" class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+            <div class="sm:col-span-5">
+              <label for="adminStudentName" class="block text-xs font-bold text-slate-700 mb-1">
+                വിദ്യാർത്ഥിയുടെ പേര്
+              </label>
+              <input
+                id="adminStudentName"
+                type="text"
+                required
+                placeholder="വിദ്യാർത്ഥിയുടെ പേര്"
+                class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-amber-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+            <div class="sm:col-span-4">
+              <label for="adminStudentMadrasa" class="block text-xs font-bold text-slate-700 mb-1">
+                മദ്രസ തിരഞ്ഞെടുക്കുക
+              </label>
+              <select
+                id="adminStudentMadrasa"
+                required
+                class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-amber-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              ></select>
+            </div>
+            <div class="sm:col-span-3">
+              <label for="adminStudentClass" class="block text-xs font-bold text-slate-700 mb-1">
+                ക്ലാസ്
+              </label>
+              <select
+                id="adminStudentClass"
+                class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-amber-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              ></select>
+            </div>
+            <div class="sm:col-span-12 flex justify-end">
+              <button
+                type="submit"
+                class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold shadow-xs transition"
+              >
+                + വിദ്യാർത്ഥി ചേർക്കുക
+              </button>
+            </div>
+          </form>
+
+          <div id="adminStudentDirectory" class="mt-4 space-y-2"></div>
+        </div>
+      </section>
+
+      <!-- ======================================================= -->
+      <!-- HIDDEN USTAD VIEW (Triggered via Madrasa Code if ON) -->
+      <!-- ======================================================= -->
+      <section
+        id="ustadViewSection"
+        class="hidden glass-card rounded-3xl shadow-lg border-2 border-teal-500/35 p-4 sm:p-6 space-y-5"
+      >
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-teal-100">
+          <div>
+            <span class="inline-block text-[11px] font-extrabold uppercase tracking-wider px-3 py-0.5 rounded-full bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-2xs">
+              Madrasa Roster
+            </span>
+            <h2 id="ustadMadrasaTitle" class="text-lg sm:text-xl font-extrabold text-slate-900 mt-1">
+              മദ്രസ വിദ്യാർത്ഥി ലിസ്റ്റ്
+            </h2>
+            <p id="ustadMadrasaSubtitle" class="text-xs text-slate-600 mt-0.5"></p>
+          </div>
+          <button
+            id="ustadBackToTrackerBtn"
+            type="button"
+            class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold transition"
+          >
+            ട്രാക്കറിലേക്ക് മടങ്ങുക
+          </button>
+        </div>
+
+        <div id="ustadStudentList" class="space-y-2.5"></div>
+      </section>
+
+      <!-- ======================================================= -->
+      <!-- STUDENT DAILY TRACKER SECTIONS (Grouped Cleanly) -->
+      <!-- ======================================================= -->
+      <main id="studentTrackerSection" class="space-y-4 sm:space-y-5">
+        <!-- SECTION 1: നിസ്കാരങ്ങൾ (ALL PRAYERS TOGETHER: Fardh + Sunnah + Duha + Witr + Tahajjud) -->
+        <section class="glass-card card-hover rounded-3xl border border-emerald-200/85 p-4 sm:p-6 space-y-5">
+          <div class="flex items-center justify-between gap-2 pb-3 border-b border-emerald-100">
+            <div>
+              <h2 class="text-base sm:text-lg font-extrabold text-slate-900 flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-600 text-white flex items-center justify-center text-sm font-extrabold shadow-xs">
+                  1
+                </span>
+                നിസ്കാരങ്ങൾ
+              </h2>
+              <p class="text-xs text-slate-600 mt-0.5">
+                ഫർള് നിസ്കാരങ്ങൾ, സുന്നത്ത് റക്അത്തുകൾ, ളുഹാ, വിത്ർ, തഹജ്ജുദ് എന്നിവ രേഖപ്പെടുത്തുക.
+              </p>
+            </div>
+            <span
+              id="fardhSummaryBadge"
+              class="text-xs sm:text-sm font-extrabold px-3.5 py-1.5 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-2xs shrink-0"
+            >
+              0 / 5 ഫർള്
+            </span>
+          </div>
+
+          <!-- Wrapper for ALL Prayers (Hidden completely when Non-Prayer toggle is ON) -->
+          <div id="allPrayersWrapper" class="space-y-5">
+            <!-- 1A. ഫർള് നിസ്കാരങ്ങൾ (5 Prayers x 4 Statuses: സുബ്ഹ്, ളുഹർ, അസർ, മഗ്‌രിബ്, ഇശാഅ്) -->
+            <div>
+              <h3 class="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-emerald-900 mb-2.5">
+                ഫർള് നിസ്കാരങ്ങൾ
+              </h3>
+              <div id="fardhPrayersContainer" class="space-y-2.5"></div>
+            </div>
+
+            <!-- 1B. സുന്നത്ത്, ളുഹാ, വിത്ർ, തഹജ്ജുദ് -->
+            <div id="sunnahExtraPrayersBlock" class="pt-4 border-t border-teal-100 space-y-4">
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-teal-900">
+                  സുന്നത്ത് നിസ്കാരങ്ങൾ
+                </h3>
+                <span
+                  id="sunnahSummaryBadge"
+                  class="text-xs font-extrabold px-3 py-1 rounded-full bg-teal-100 text-teal-900 border border-teal-300/70"
+                >
+                  0 / 20 റക്അത്ത്
+                </span>
+              </div>
+
+              <div id="sunnahPrayersContainer" class="space-y-2.5"></div>
+
+              <!-- ളുഹാ, വിത്ർ, തഹജ്ജുദ് -->
+              <div class="pt-3 border-t border-emerald-100/80 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <label class="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50/70 hover:from-emerald-100/70 border border-emerald-200/80 cursor-pointer transition">
+                  <div>
+                    <span class="block text-sm font-extrabold text-slate-900">ളുഹാ നിസ്കാരം</span>
+                    <span class="block text-[11px] text-slate-600 mt-0.5">നിർവ്വഹിച്ചു</span>
+                  </div>
+                  <input
+                    id="duhaPrayerCheckbox"
+                    type="checkbox"
+                    class="w-5 h-5 rounded accent-emerald-600 cursor-pointer"
+                  />
+                </label>
+
+                <label class="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-teal-50 to-cyan-50/70 hover:from-teal-100/70 border border-teal-200/80 cursor-pointer transition">
+                  <div>
+                    <span class="block text-sm font-extrabold text-slate-900">വിത്ർ നിസ്കാരം</span>
+                    <span class="block text-[11px] text-slate-600 mt-0.5">നിർവ്വഹിച്ചു</span>
+                  </div>
+                  <input
+                    id="witrPrayerCheckbox"
+                    type="checkbox"
+                    class="w-5 h-5 rounded accent-teal-600 cursor-pointer"
+                  />
+                </label>
+
+                <label class="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-indigo-50/80 to-emerald-50/70 hover:from-indigo-100/70 border border-indigo-200/80 cursor-pointer transition">
+                  <div>
+                    <span class="block text-sm font-extrabold text-slate-900">തഹജ്ജുദ് നിസ്കാരം</span>
+                    <span class="block text-[11px] text-slate-600 mt-0.5">നിർവ്വഹിച്ചു</span>
+                  </div>
+                  <input
+                    id="tahajjudPrayerCheckbox"
+                    type="checkbox"
+                    class="w-5 h-5 rounded accent-indigo-600 cursor-pointer"
+                  />
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div
+            id="nonPrayerHiddenBanner"
+            class="hidden rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300/80 p-3.5 text-xs text-amber-950 font-semibold"
+          >
+            <strong>നിസ്കരിക്കാൻ പറ്റാത്ത സമയം</strong> ഓൺ ആയതിനാൽ ഫർള് നിസ്കാരങ്ങൾ, സുന്നത്ത് നിസ്കാരങ്ങൾ, ളുഹാ നിസ്കാരം, വിത്ർ നിസ്കാരം, തഹജ്ജുദ് നിസ്കാരം, സൂറത്തുകളും ഖുർആൻ ഭാഗവും, വെള്ളിയാഴ്ചയിലെ സൂറത്തുൽ കഹ്ഫ് &amp; നഖം വെട്ടൽ എന്നിവ ഹൈഡ് ചെയ്തിരിക്കുന്നു.
+          </div>
+        </section>
+
+        <!-- SECTION 2: ദിക്റുകൾ / അദ്കാറുകൾ (ഹദ്ദാദ് ടിക്ക്, എണ്ണമുള്ള ഇസ്തിഗ്ഫാർ, എണ്ണമുള്ള സ്വലാത്ത്) -->
+        <section class="glass-card card-hover rounded-3xl border border-amber-200/85 p-4 sm:p-6">
+          <div class="flex items-center justify-between gap-2 mb-4">
+            <div>
+              <h2 class="text-base sm:text-lg font-extrabold text-slate-900 flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 text-white flex items-center justify-center text-sm font-extrabold shadow-xs">
+                  2
+                </span>
+                ദിക്റുകൾ / അദ്കാറുകൾ
+              </h2>
+              <p class="text-xs text-slate-600 mt-0.5">
+                ഹദ്ദാദ് ടിക്ക് ഇടുക; ഇസ്തിഗ്ഫാർ, സ്വലാത്ത് എന്നിവയുടെ എണ്ണം രേഖപ്പെടുത്തുക.
+              </p>
+            </div>
+            <span
+              id="dhikrSummaryBadge"
+              class="text-xs sm:text-sm font-extrabold px-3.5 py-1.5 rounded-full bg-amber-100 text-amber-950 border border-amber-300/70 shrink-0"
+            >
+              0 / 3 പൂർണ്ണം
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+            <!-- ഹദ്ദാദ് (ടിക്ക് ഇടാനുള്ള ഓപ്ഷൻ മാത്രം) -->
+            <label class="rounded-2xl bg-gradient-to-b from-amber-50/75 to-white hover:from-amber-100/60 border border-amber-200/85 p-4 flex items-center justify-between gap-3 cursor-pointer transition">
+              <div>
+                <h3 class="font-extrabold text-sm sm:text-base text-slate-900">ഹദ്ദാദ്</h3>
+                <p class="text-xs text-slate-500 mt-1">റാത്തീബുൽ ഹദ്ദാദ് പൂർത്തിയായി</p>
+              </div>
+              <input
+                id="haddadCompletedCheckbox"
+                type="checkbox"
+                class="w-5 h-5 rounded accent-amber-600 cursor-pointer shrink-0"
+              />
+            </label>
+
+            <!-- ഇസ്തിഗ്ഫാർ (എണ്ണം) -->
+            <div class="rounded-2xl bg-gradient-to-b from-teal-50/75 to-white border border-teal-200/85 p-4 flex flex-col justify-between gap-3">
+              <div>
+                <div class="flex items-center justify-between">
+                  <h3 class="font-extrabold text-sm sm:text-base text-slate-900">ഇസ്തിഗ്ഫാർ</h3>
+                  <span id="istighfarBadge" class="text-xs font-extrabold text-teal-800 bg-teal-100 px-2 py-0.5 rounded-full">
+                    0 എണ്ണം
+                  </span>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">ഇസ്തിഗ്ഫാറിന്റെ എണ്ണം എഴുതുക</p>
+              </div>
+              <input
+                id="istighfarCountInput"
+                type="number"
+                min="0"
+                step="1"
+                placeholder="ഇസ്തിഗ്ഫാർ എണ്ണം"
+                class="w-full px-3 py-2 rounded-xl bg-white border border-teal-200 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+            </div>
+
+            <!-- സ്വലാത്ത് (എണ്ണം) -->
+            <div class="rounded-2xl bg-gradient-to-b from-emerald-50/70 to-white border border-emerald-200/85 p-4 flex flex-col justify-between gap-3">
+              <div>
+                <div class="flex items-center justify-between">
+                  <h3 class="font-extrabold text-sm sm:text-base text-slate-900">സ്വലാത്ത്</h3>
+                  <span id="salawatBadge" class="text-xs font-extrabold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                    0 എണ്ണം
+                  </span>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">സ്വലാത്തിന്റെ എണ്ണം എഴുതുക</p>
+              </div>
+              <input
+                id="salawatCountInput"
+                type="number"
+                min="0"
+                step="1"
+                placeholder="സ്വലാത്ത് എണ്ണം"
+                class="w-full px-3 py-2 rounded-xl bg-white border border-emerald-200 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION 3: സൂറത്തുകളും ഖുർആൻ ഭാഗവും (സൂറത്തുൽ മുൽക്ക്, സൂറത്തുൽ വാഖിഅഃ, മദ്രസയിലെ ഖുർആൻ ഭാഗം) -->
+        <section id="surahsQuranSection" class="glass-card card-hover rounded-3xl border border-purple-200/80 p-4 sm:p-6">
+          <div class="flex items-center justify-between gap-2 mb-4">
+            <div>
+              <h2 class="text-base sm:text-lg font-extrabold text-slate-900 flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center text-sm font-extrabold shadow-xs">
+                  3
+                </span>
+                സൂറത്തുകളും ഖുർആൻ ഭാഗവും
+              </h2>
+              <p class="text-xs text-slate-600 mt-0.5">
+                സൂറത്തുൽ മുൽക്ക്, സൂറത്തുൽ വാഖിഅഃ, മദ്രസയിൽ നിന്ന് എടുത്ത ഖുർആൻ ഭാഗം എന്നിവ രേഖപ്പെടുത്തുക.
+              </p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+            <label class="flex items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-r from-purple-50/80 to-indigo-50/60 hover:from-purple-100/70 border border-purple-200/80 cursor-pointer transition">
+              <div>
+                <span class="block text-sm font-extrabold text-slate-900">സൂറത്തുൽ മുൽക്ക്</span>
+                <span class="block text-xs text-slate-600 mt-0.5">പാരായണം ചെയ്തു</span>
+              </div>
+              <input
+                id="surahMulkCheckbox"
+                type="checkbox"
+                class="w-5 h-5 rounded accent-purple-600 cursor-pointer"
+              />
+            </label>
+
+            <label class="flex items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-r from-indigo-50/80 to-purple-50/60 hover:from-indigo-100/70 border border-indigo-200/80 cursor-pointer transition">
+              <div>
+                <span class="block text-sm font-extrabold text-slate-900">സൂറത്തുൽ വാഖിഅഃ</span>
+                <span class="block text-xs text-slate-600 mt-0.5">പാരായണം ചെയ്തു</span>
+              </div>
+              <input
+                id="surahWaqiahCheckbox"
+                type="checkbox"
+                class="w-5 h-5 rounded accent-indigo-600 cursor-pointer"
+              />
+            </label>
+
+            <!-- മദ്രസയിൽ നിന്ന് എടുത്ത ഖുർആൻ ഭാഗം (ടിക്ക് ഇടാനുള്ള ഓപ്ഷൻ മാത്രം) -->
+            <label class="flex items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-r from-purple-50/80 to-pink-50/50 hover:from-purple-100/70 border border-purple-200/80 cursor-pointer transition">
+              <div>
+                <span class="block text-sm font-extrabold text-slate-900">മദ്രസയിൽ നിന്ന് എടുത്ത ഖുർആൻ ഭാഗം</span>
+                <span class="block text-xs text-slate-600 mt-0.5">പൂർത്തിയായി</span>
+              </div>
+              <input
+                id="quranPortionDoneCheckbox"
+                type="checkbox"
+                class="w-5 h-5 rounded accent-purple-600 cursor-pointer shrink-0"
+              />
+            </label>
+          </div>
+        </section>
+
+        <!-- SECTION 4: വെള്ളിയാഴ്ച പ്രത്യേക ഭാഗങ്ങൾ (സൂറത്തുൽ കഹ്ഫ് & നഖം വെട്ടൽ) -->
+        <section id="fridaySpecialCard" class="glass-card card-hover rounded-3xl border border-amber-300/85 p-4 sm:p-6">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div>
+              <h2 class="text-base sm:text-lg font-extrabold text-slate-900 flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-2xl bg-gradient-to-br from-amber-500 to-yellow-400 text-slate-950 flex items-center justify-center text-sm font-extrabold shadow-xs">
+                  4
+                </span>
+                വെള്ളിയാഴ്ച പ്രത്യേക ഭാഗങ്ങൾ
+              </h2>
+              <p class="text-xs text-slate-600 mt-0.5">
+                സൂറത്തുൽ കഹ്ഫ്, നഖം വെട്ടൽ — നിസ്കരിക്കാൻ പറ്റാത്ത സമയത്തെ ടിക്ക് ഓൺ ആക്കിയാൽ ഇവ തനിയെ ഹൈഡ് ആകും.
+              </p>
+            </div>
+            <button
+              id="toggleFridayPreviewBtn"
+              type="button"
+              class="text-xs font-bold px-3 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300/70 transition"
+            >
+              പ്രിവ്യൂ കാണുക
+            </button>
+          </div>
+
+          <div id="fridayExcusedHiddenNotice" class="hidden rounded-2xl bg-amber-50 border border-amber-200 p-3.5 text-xs text-amber-900 font-semibold">
+            നിസ്കരിക്കാൻ പറ്റാത്ത സമയം ഓൺ ആയതിനാൽ സൂറത്തുൽ കഹ്ഫും നഖം വെട്ടലും ഹൈഡ് ചെയ്തിരിക്കുന്നു.
+          </div>
+
+          <div id="fridayItemsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+            <label class="flex items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-yellow-50/75 hover:from-amber-100/70 border border-amber-200/90 cursor-pointer transition">
+              <div>
+                <span class="block text-sm font-extrabold text-slate-900">സൂറത്തുൽ കഹ്ഫ്</span>
+                <span class="block text-xs text-slate-600 mt-0.5">വെള്ളിയാഴ്ച സൂറത്തുൽ കഹ്ഫ് പാരായണം</span>
+              </div>
+              <input
+                id="fridayKahfCheckbox"
+                type="checkbox"
+                class="w-5 h-5 rounded accent-amber-600 cursor-pointer"
+              />
+            </label>
+
+            <label class="flex items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-r from-yellow-50/80 to-amber-50 hover:from-amber-100/70 border border-amber-200/90 cursor-pointer transition">
+              <div>
+                <span class="block text-sm font-extrabold text-slate-900">നഖം വെട്ടൽ</span>
+                <span class="block text-xs text-slate-600 mt-0.5">സുന്നത്ത് പ്രകാരം നഖം വെട്ടൽ</span>
+              </div>
+              <input
+                id="fridayNailCheckbox"
+                type="checkbox"
+                class="w-5 h-5 rounded accent-amber-600 cursor-pointer"
+              />
+            </label>
+          </div>
+
+          <div id="fridayNotTodayNotice" class="hidden rounded-2xl bg-slate-50 border border-slate-200 p-3.5 text-xs text-slate-600">
+            ഇന്ന് വെള്ളിയാഴ്ചയല്ല. വെള്ളിയാഴ്ച ദിവസം സൂറത്തുൽ കഹ്ഫും നഖം വെട്ടലും ഇവിടെ ദൃശ്യമാകും (അല്ലെങ്കിൽ "പ്രിവ്യൂ കാണുക" ക്ലിക്ക് ചെയ്ത് പരിശോധിക്കാം).
+          </div>
+        </section>
+
+        <!-- SECTION 5: മൊബൈൽ ഉപയോഗ സമയം & പുസ്തകം വായിച്ച സമയം -->
+        <section class="glass-card card-hover rounded-3xl border border-sky-200/85 p-4 sm:p-6 space-y-5">
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-3">
+              <div>
+                <h2 class="text-base sm:text-lg font-extrabold text-slate-900 flex items-center gap-2.5">
+                  <span class="w-8 h-8 rounded-2xl bg-gradient-to-br from-sky-500 to-cyan-600 text-white flex items-center justify-center text-sm font-extrabold shadow-xs">
+                    5
+                  </span>
+                  മൊബൈൽ ഉപയോഗ സമയം
+                </h2>
+                <p class="text-xs text-slate-600 mt-0.5">
+                  ഉപയോഗിച്ചില്ല, 10 മിനിറ്റ്, അര മണിക്കൂർ, 1 മണിക്കൂർ, 2 മണിക്കൂർ എന്നിവയിൽ തിരഞ്ഞെടുക്കുക.
+                </p>
+              </div>
+              <button
+                id="clearMobileUsageBtn"
+                type="button"
+                class="text-xs font-bold text-sky-800 hover:text-sky-950 bg-sky-50 hover:bg-sky-100 px-3 py-1.5 rounded-xl border border-sky-200/80 transition"
+              >
+                മാറ്റുക
+              </button>
+            </div>
+            <div id="mobileUsageOptions" class="grid grid-cols-2 sm:grid-cols-5 gap-2.5"></div>
+          </div>
+
+          <div class="pt-4 border-t border-indigo-100">
+            <div class="flex items-center justify-between gap-2 mb-3">
+              <div>
+                <h3 class="text-base font-extrabold text-slate-900">
+                  പുസ്തകം വായിച്ച സമയം
+                </h3>
+                <p class="text-xs text-slate-600 mt-0.5">
+                  വായിച്ചിട്ടില്ല, 5 മിനിറ്റ്, 10 മിനിറ്റ്, അര മണിക്കൂർ, 1 മണിക്കൂർ, 2 മണിക്കൂർ എന്നിവയിൽ തിരഞ്ഞെടുക്കുക.
+                </p>
+              </div>
+              <button
+                id="clearReadingTimeBtn"
+                type="button"
+                class="text-xs font-bold text-indigo-800 hover:text-indigo-950 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-xl border border-indigo-200/80 transition"
+              >
+                മാറ്റുക
+              </button>
+            </div>
+            <div id="readingTimeOptions" class="grid grid-cols-2 sm:grid-cols-6 gap-2.5"></div>
+          </div>
+        </section>
+
+        <!-- SECTION 6: മാസാന്ത്യ പോയിന്റ് കണക്ക് & ക്ലാസ് / മദ്രസ റാങ്കിംഗ് -->
+        <section class="glass-card card-hover rounded-3xl border border-emerald-300/85 p-4 sm:p-6">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <div>
+              <h2 class="text-base sm:text-lg font-extrabold text-slate-900 flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-slate-950 flex items-center justify-center text-sm font-extrabold shadow-xs">
+                  ★
+                </span>
+                മാസാന്ത്യ പോയിന്റ് കണക്ക് &amp; റാങ്കിംഗ്
+              </h2>
+              <p class="text-xs text-slate-600 mt-0.5">
+                ഓരോ വിഷയത്തിനും ലഭിച്ച മാസത്തെ പോയിന്റുകൾ, മൊത്തം ടോട്ടൽ, ക്ലാസ് &amp; മദ്രസ ഒന്നാം സ്ഥാനങ്ങൾ (വൈകി രേഖപ്പെടുത്തിയാലും പോയിന്റ് കുറയ്ക്കില്ല).
+              </p>
+            </div>
+            <span
+              id="monthlyTotalPointsBadge"
+              class="text-xs sm:text-sm font-extrabold px-4 py-1.5 rounded-full bg-gradient-to-r from-emerald-700 to-teal-700 text-white shadow-sm"
+            >
+              മാസത്തെ ആകെ പോയിന്റ്: 0
+            </span>
+          </div>
+
+          <div id="monthlyPointsBreakdown" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 mb-5"></div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-emerald-100">
+            <div class="rounded-2xl bg-gradient-to-br from-emerald-50/85 to-white border border-emerald-200/80 p-4">
+              <h3 class="text-sm font-extrabold text-emerald-950 mb-2.5 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+                ക്ലാസ് റാങ്കിംഗ് (ഈ മാസം)
+              </h3>
+              <div id="classLeaderboardList" class="space-y-2 text-xs"></div>
+            </div>
+            <div class="rounded-2xl bg-gradient-to-br from-amber-50/85 to-white border border-amber-300/80 p-4">
+              <h3 class="text-sm font-extrabold text-amber-950 mb-2.5 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                മദ്രസ റാങ്കിംഗ് — മദ്രസയിൽ ഒന്നാമൻ (ഈ മാസം)
+              </h3>
+              <div id="madrasaLeaderboardList" class="space-y-2 text-xs"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Single Save Bar (Auto-save active + Single Save button) -->
+        <section class="glass-card rounded-3xl border border-emerald-300/85 p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div class="text-center sm:text-left">
+            <p class="text-xs sm:text-sm font-extrabold text-slate-900">
+              മാറ്റങ്ങൾ തനിയെ സേവ് ആകുന്നുണ്ട്
+            </p>
+            <p id="saveStatusLabel" class="text-xs text-emerald-700 font-semibold mt-0.5">
+              ഓട്ടോ-സേവ് സജീവം
+            </p>
+          </div>
+          <button
+            id="universalSaveBtn"
+            type="button"
+            class="w-full sm:w-auto px-7 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 active:scale-[0.98] text-white text-sm font-extrabold shadow-md shadow-emerald-700/20 transition"
+          >
+            സേവ് ചെയ്യുക
+          </button>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- APPLICATION JAVASCRIPT -->
+  <!-- ========================================================= -->
+  <script>
+    (function () {
+      "use strict";
+
+      const STORAGE_KEYS = {
+        MADRASAS: "daily_track_madrasas_v2",
+        STUDENTS: "daily_track_students_v2",
+        LOGS: "daily_track_logs_v2",
+        SESSION: "daily_track_session_v2",
+        SETTINGS: "daily_track_settings_v2",
+      };
+
+      // Hidden Main Admin code ("Cv 313" case/whitespace tolerant)
+      const ADMIN_CODE_CLEAN = "cv313";
+
+      const CLASS_OPTIONS = [
+        "1-ാം ക്ലാസ്",
+        "2-ാം ക്ലാസ്",
+        "3-ാം ക്ലാസ്",
+        "4-ാം ക്ലാസ്",
+        "5-ാം ക്ലാസ്",
+        "6-ാം ക്ലാസ്",
+        "7-ാം ക്ലാസ്",
+        "8-ാം ക്ലാസ്",
+        "9-ാം ക്ലാസ്",
+        "10-ാം ക്ലാസ്",
+      ];
+
+      const FARDH_PRAYERS = [
+        { id: "subh", nameMl: "സുബ്ഹ്" },
+        { id: "dhuhr", nameMl: "ളുഹർ" },
+        { id: "asr", nameMl: "അസർ" },
+        { id: "maghrib", nameMl: "മഗ്‌രിബ്" },
+        { id: "isha", nameMl: "ഇഷാഅ്" },
+      ];
+
+      const FARDH_STATUS_OPTIONS = [
+        { value: "adaa", label: "അദാഅ്" },
+        { value: "qada", label: "ഖളാഅ്" },
+        { value: "missed", label: "നിസ്കരിച്ചിട്ടില്ല" },
+        { value: "jamaah", label: "ജമാഅത്ത്" },
+      ];
+
+      // Sunnah prayers specification:
+      // Subh: before 2, after none
+      // Dhuhr: before 4, after 4
+      // Asr: before 4, after none
+      // Maghrib: before 2, after 2
+      // Isha: before 2, after 2
+      const SUNNAH_CONFIG = [
+        {
+          id: "subh",
+          nameMl: "സുബ്ഹ്",
+          beforeMax: 2,
+          beforeLabel: "മുമ്പ് (2)",
+          afterMax: 0,
+          afterLabel: "ശേഷം ഇല്ല",
+        },
+        {
+          id: "dhuhr",
+          nameMl: "ളുഹർ",
+          beforeMax: 4,
+          beforeLabel: "മുമ്പ് (4)",
+          afterMax: 4,
+          afterLabel: "ശേഷം (4)",
+        },
+        {
+          id: "asr",
+          nameMl: "അസ്ർ",
+          beforeMax: 4,
+          beforeLabel: "മുമ്പ് (4)",
+          afterMax: 0,
+          afterLabel: "ശേഷം ഇല്ല",
+        },
+        {
+          id: "maghrib",
+          nameMl: "മഗ്രിബ്",
+          beforeMax: 2,
+          beforeLabel: "മുമ്പ് (2)",
+          afterMax: 2,
+          afterLabel: "ശേഷം (2)",
+        },
+        {
+          id: "isha",
+          nameMl: "ഇശാഅ്",
+          beforeMax: 2,
+          beforeLabel: "മുമ്പ് (2)",
+          afterMax: 2,
+          afterLabel: "ശേഷം (2)",
+        },
+      ];
+
+      const MOBILE_USAGE_OPTIONS = [
+        "ഉപയോഗിച്ചില്ല",
+        "10 മിനിറ്റ്",
+        "അര മണിക്കൂർ",
+        "1 മണിക്കൂർ",
+        "2 മണിക്കൂർ",
+      ];
+
+      const READING_TIME_OPTIONS = [
+        "വായിച്ചിട്ടില്ല",
+        "5 മിനിറ്റ്",
+        "10 മിനിറ്റ്",
+        "അര മണിക്കൂർ",
+        "1 മണിക്കൂർ",
+        "2 മണിക്കൂർ",
+      ];
+
+      const MALAYALAM_DAYS = [
+        "ഞായറാഴ്ച",
+        "തിങ്കളാഴ്ച",
+        "ചൊവ്വാഴ്ച",
+        "ബുധനാഴ്ച",
+        "വ്യാഴാഴ്ച",
+        "വെള്ളിയാഴ്ച",
+        "ശനിയാഴ്ച",
+      ];
+
+      const state = {
+        selectedDate: toLocalISODate(new Date()),
+        madrasas: [],
+        students: [],
+        logs: {},
+        settings: { allowUstadView: true },
+        screen: "entry", // "entry" | "tracker"
+        mode: "student", // "student" | "admin" | "ustad"
+        activeUstadCode: "",
+        studentName: "",
+        studentClass: "5-ാം ക്ലാസ്",
+        studentMadrasaCode: "",
+        activeGroupKey: "",
+        extraChildren: [], // Array of { name: string, className: string }
+        fridayPreviewOnNonFriday: false,
+      };
+
+      function showToast(message) {
+        const banner = document.getElementById("toastBanner");
+        const msgEl = document.getElementById("toastMessage");
+        if (!banner || !msgEl) return;
+        msgEl.textContent = message;
+        banner.classList.remove("hidden");
+        clearTimeout(showToast._timer);
+        showToast._timer = setTimeout(() => {
+          banner.classList.add("hidden");
+        }, 3000);
+      }
+
+      function escapeHTML(str) {
+        return String(str || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function toLocalISODate(dateObj) {
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+        const d = String(dateObj.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+      }
+
+      function parseISODateLocal(isoStr) {
+        const parts = (isoStr || "").split("-");
+        if (parts.length !== 3) return new Date();
+        const y = Number(parts[0]);
+        const m = Number(parts[1]) - 1;
+        const d = Number(parts[2]);
+        const dt = new Date(y, m, d);
+        return Number.isNaN(dt.getTime()) ? new Date() : dt;
+      }
+
+      function shiftISODate(isoStr, deltaDays) {
+        const dt = parseISODateLocal(isoStr);
+        dt.setDate(dt.getDate() + deltaDays);
+        return toLocalISODate(dt);
+      }
+
+      function readJSON(key, fallback) {
+        try {
+          const raw = localStorage.getItem(key);
+          if (!raw) return fallback;
+          return JSON.parse(raw);
+        } catch (_err) {
+          return fallback;
+        }
+      }
+
+      function writeJSON(key, value) {
+        try {
+          localStorage.setItem(key, JSON.stringify(value));
+        } catch (_err) {
+          showToast("ഡാറ്റ സേവ് ചെയ്യുന്നതിൽ പിശക് സംഭവിച്ചു.");
+        }
+      }
+
+      function normalizeCode(code) {
+        return (code || "").trim().toUpperCase();
+      }
+
+      function isAdminSecretInput(rawVal) {
+        const compacted = (rawVal || "").toLowerCase().replace(/\s+/g, "");
+        return compacted === ADMIN_CODE_CLEAN;
+      }
+
+      function createDefaultLog() {
+        const fardh = {};
+        FARDH_PRAYERS.forEach((fp) => {
+          fardh[fp.id] = "";
+        });
+        const sunnah = {};
+        SUNNAH_CONFIG.forEach((p) => {
+          sunnah[p.id] = {
+            before: 0,
+            after: 0,
+            notPrayed: false,
+          };
+        });
+        return {
+          nonPrayer: false,
+          fardh,
+          sunnah,
+          duha: false,
+          witr: false,
+          tahajjud: false,
+          dhikr: {
+            haddadDone: false,
+            haddadCount: "",
+            istighfarCount: "",
+            salawatCount: "",
+          },
+          quran: {
+            mulk: false,
+            waqiah: false,
+            portionDone: false,
+            portionText: "",
+          },
+          friday: {
+            kahf: false,
+            nail: false,
+          },
+          mobileUsage: "",
+          readingTime: "",
+        };
+      }
+
+      function mergeLogWithDefault(rawLog) {
+        const base = createDefaultLog();
+        if (!rawLog || typeof rawLog !== "object") return base;
+        base.nonPrayer = Boolean(rawLog.nonPrayer);
+        base.duha = Boolean(rawLog.duha);
+        base.witr = Boolean(rawLog.witr);
+        base.tahajjud = Boolean(rawLog.tahajjud);
+
+        if (rawLog.fardh && typeof rawLog.fardh === "object") {
+          const validStatuses = FARDH_STATUS_OPTIONS.map((o) => o.value);
+          FARDH_PRAYERS.forEach((fp) => {
+            const val = rawLog.fardh[fp.id];
+            base.fardh[fp.id] = validStatuses.includes(val) ? val : "";
+          });
+        }
+
+        SUNNAH_CONFIG.forEach((p) => {
+          const item = rawLog.sunnah && rawLog.sunnah[p.id] ? rawLog.sunnah[p.id] : {};
+          const notPrayed = Boolean(item.notPrayed);
+          const bVal = notPrayed ? 0 : Math.max(0, Math.min(p.beforeMax, Number(item.before) || 0));
+          const aVal = notPrayed ? 0 : Math.max(0, Math.min(p.afterMax, Number(item.after) || 0));
+          base.sunnah[p.id] = { before: bVal, after: aVal, notPrayed };
+        });
+
+        if (rawLog.dhikr) {
+          base.dhikr.haddadDone = Boolean(rawLog.dhikr.haddadDone);
+          base.dhikr.haddadCount = "";
+          base.dhikr.istighfarCount =
+            rawLog.dhikr.istighfarCount === 0 || rawLog.dhikr.istighfarCount
+              ? String(rawLog.dhikr.istighfarCount)
+              : "";
+          base.dhikr.salawatCount =
+            rawLog.dhikr.salawatCount === 0 || rawLog.dhikr.salawatCount
+              ? String(rawLog.dhikr.salawatCount)
+              : "";
+        }
+
+        if (rawLog.quran) {
+          base.quran.mulk = Boolean(rawLog.quran.mulk);
+          base.quran.waqiah = Boolean(rawLog.quran.waqiah);
+          base.quran.portionDone = Boolean(rawLog.quran.portionDone);
+          base.quran.portionText = "";
+        }
+
+        if (rawLog.friday) {
+          base.friday.kahf = Boolean(rawLog.friday.kahf);
+          base.friday.nail = Boolean(rawLog.friday.nail);
+        }
+
+        base.mobileUsage = MOBILE_USAGE_OPTIONS.includes(rawLog.mobileUsage)
+          ? rawLog.mobileUsage
+          : "";
+        base.readingTime = READING_TIME_OPTIONS.includes(rawLog.readingTime)
+          ? rawLog.readingTime
+          : "";
+
+        return base;
+      }
+
+      // Calculate daily points per topic (zero late-entry penalty)
+      function computeDailyTopicPoints(rawLog) {
+        const log = mergeLogWithDefault(rawLog);
+
+        let fardhPts = 0;
+        if (!log.nonPrayer) {
+          FARDH_PRAYERS.forEach((fp) => {
+            const st = log.fardh[fp.id];
+            if (st === "jamaah") fardhPts += 10;
+            else if (st === "adaa") fardhPts += 7;
+            else if (st === "qada") fardhPts += 4;
+          });
+        }
+
+        let sunnahPts = 0;
+        if (!log.nonPrayer) {
+          let rakahSum = 0;
+          SUNNAH_CONFIG.forEach((p) => {
+            const s = log.sunnah[p.id];
+            if (s && !s.notPrayed) {
+              rakahSum += (s.before || 0) + (s.after || 0);
+            }
+          });
+          sunnahPts += rakahSum * 2;
+          if (log.duha) sunnahPts += 5;
+          if (log.witr) sunnahPts += 5;
+          if (log.tahajjud) sunnahPts += 8;
+        }
+
+        let dhikrPts = 0;
+        if (log.dhikr.haddadDone) dhikrPts += 5;
+        const istCount = Number(log.dhikr.istighfarCount) || 0;
+        if (istCount > 0) {
+          dhikrPts += Math.min(20, Math.floor(istCount / 10) * 2 + 2);
+        }
+        const salCount = Number(log.dhikr.salawatCount) || 0;
+        if (salCount > 0) {
+          dhikrPts += Math.min(20, Math.floor(salCount / 10) * 2 + 2);
+        }
+
+        let quranPts = 0;
+        if (!log.nonPrayer) {
+          if (log.quran.mulk) quranPts += 6;
+          if (log.quran.waqiah) quranPts += 6;
+          if (log.quran.portionDone) quranPts += 8;
+        }
+
+        let fridayPts = 0;
+        if (!log.nonPrayer) {
+          if (log.friday.kahf) fridayPts += 10;
+          if (log.friday.nail) fridayPts += 5;
+        }
+
+        const mobileMap = {
+          "ഉപയോഗിച്ചില്ല": 10,
+          "10 മിനിറ്റ്": 8,
+          "അര മണിക്കൂർ": 5,
+          "1 മണിക്കൂർ": 2,
+          "2 മണിക്കൂർ": 0,
+        };
+        const mobilePts = log.mobileUsage ? mobileMap[log.mobileUsage] ?? 0 : 0;
+
+        const readingMap = {
+          "വായിച്ചിട്ടില്ല": 0,
+          "5 മിനിറ്റ്": 4,
+          "10 മിനിറ്റ്": 7,
+          "അര മണിക്കൂർ": 12,
+          "1 മണിക്കൂർ": 18,
+          "2 മണിക്കൂർ": 25,
+        };
+        const readingPts = log.readingTime ? readingMap[log.readingTime] ?? 0 : 0;
+
+        const total = fardhPts + sunnahPts + dhikrPts + quranPts + fridayPts + mobilePts + readingPts;
+        return {
+          fardh: fardhPts,
+          sunnah: sunnahPts,
+          dhikr: dhikrPts,
+          quran: quranPts,
+          friday: fridayPts,
+          mobile: mobilePts,
+          reading: readingPts,
+          total,
+        };
+      }
+
+      function computeMonthlyBreakdownForProfile(profileKey, yearMonthPrefix) {
+        const totals = {
+          fardh: 0,
+          sunnah: 0,
+          dhikr: 0,
+          quran: 0,
+          friday: 0,
+          mobile: 0,
+          reading: 0,
+          total: 0,
+        };
+        Object.keys(state.logs).forEach((k) => {
+          const prefix = `${profileKey}__`;
+          if (!k.startsWith(prefix)) return;
+          const datePart = k.slice(prefix.length);
+          if (!datePart.startsWith(yearMonthPrefix)) return;
+          const dayPts = computeDailyTopicPoints(state.logs[k]);
+          totals.fardh += dayPts.fardh;
+          totals.sunnah += dayPts.sunnah;
+          totals.dhikr += dayPts.dhikr;
+          totals.quran += dayPts.quran;
+          totals.friday += dayPts.friday;
+          totals.mobile += dayPts.mobile;
+          totals.reading += dayPts.reading;
+          totals.total += dayPts.total;
+        });
+        return totals;
+      }
+
+      function seedInitialDataIfEmpty() {
+        const existingMadrasas = readJSON(STORAGE_KEYS.MADRASAS, null);
+        const existingStudents = readJSON(STORAGE_KEYS.STUDENTS, null);
+        const existingLogs = readJSON(STORAGE_KEYS.LOGS, null);
+        const existingSettings = readJSON(STORAGE_KEYS.SETTINGS, null);
+
+        if (!existingSettings || typeof existingSettings !== "object") {
+          writeJSON(STORAGE_KEYS.SETTINGS, { allowUstadView: true });
+        }
+
+        if (!Array.isArray(existingMadrasas) || existingMadrasas.length === 0) {
+          writeJSON(STORAGE_KEYS.MADRASAS, [
+            { id: "md-1", name: "ദാറുൽ ഹുദാ മദ്രസ", code: "MD-01" },
+            { id: "md-2", name: "അൽ-ഫലാഹ് മദ്രസ", code: "MK-102" },
+          ]);
+        }
+
+        if (!Array.isArray(existingStudents) || existingStudents.length === 0) {
+          writeJSON(STORAGE_KEYS.STUDENTS, [
+            { id: "st-1", name: "മുഹമ്മദ് ഫായിസ്", madrasaCode: "MD-01", className: "5-ാം ക്ലാസ്" },
+            { id: "st-2", name: "ഫാത്തിമ റിഫ", madrasaCode: "MD-01", className: "5-ാം ക്ലാസ്" },
+            { id: "st-3", name: "അബ്ദുല്ല ഹാദി", madrasaCode: "MK-102", className: "6-ാം ക്ലാസ്" },
+          ]);
+        }
+
+        if (!existingLogs || typeof existingLogs !== "object" || Object.keys(existingLogs).length === 0) {
+          const now = new Date();
+          const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+          const sampleLogs = {};
+
+          const l1 = createDefaultLog();
+          l1.fardh = { subh: "jamaah", dhuhr: "jamaah", asr: "adaa", maghrib: "jamaah", isha: "adaa" };
+          l1.duha = true;
+          l1.witr = true;
+          l1.dhikr = { haddadDone: true, haddadCount: "1", istighfarCount: "100", salawatCount: "100" };
+          l1.quran = { mulk: true, waqiah: false, portionDone: true, portionText: "പേജ് 10-12" };
+          l1.mobileUsage = "ഉപയോഗിച്ചില്ല";
+          l1.readingTime = "1 മണിക്കൂർ";
+
+          const l2 = createDefaultLog();
+          l2.fardh = { subh: "adaa", dhuhr: "adaa", asr: "adaa", maghrib: "adaa", isha: "adaa" };
+          l2.witr = true;
+          l2.dhikr = { haddadDone: true, haddadCount: "", istighfarCount: "50", salawatCount: "50" };
+          l2.quran = { mulk: false, waqiah: true, portionDone: false, portionText: "" };
+          l2.mobileUsage = "10 മിനിറ്റ്";
+          l2.readingTime = "അര മണിക്കൂർ";
+
+          const l3 = createDefaultLog();
+          l3.fardh = { subh: "jamaah", dhuhr: "jamaah", asr: "jamaah", maghrib: "jamaah", isha: "jamaah" };
+          l3.duha = true;
+          l3.witr = true;
+          l3.tahajjud = true;
+          l3.dhikr = { haddadDone: true, haddadCount: "1", istighfarCount: "100", salawatCount: "200" };
+          l3.quran = { mulk: true, waqiah: true, portionDone: true, portionText: "പേജ് 1-3" };
+          l3.mobileUsage = "ഉപയോഗിച്ചില്ല";
+          l3.readingTime = "2 മണിക്കൂർ";
+
+          sampleLogs[`STU:MD-01:മുഹമ്മദ് ഫായിസ്__${ym}-05`] = l1;
+          sampleLogs[`STU:MD-01:ഫാത്തിമ റിഫ__${ym}-05`] = l2;
+          sampleLogs[`STU:MK-102:അബ്ദുല്ല ഹാദി__${ym}-05`] = l3;
+          writeJSON(STORAGE_KEYS.LOGS, sampleLogs);
+        }
+      }
+
+      function buildGroupKey(madrasaCode, primaryName) {
+        const mCode = normalizeCode(madrasaCode) || "GENERAL";
+        const pName = (primaryName || "").trim().toLowerCase();
+        return pName ? `GRP:${mCode}:${pName}` : "";
+      }
+
+      function getChildrenInActiveGroup() {
+        const cleanName = (state.studentName || "").trim();
+        if (!cleanName) return [];
+        const mCode = normalizeCode(state.studentMadrasaCode) || "GENERAL";
+        const gKey = state.activeGroupKey || buildGroupKey(mCode, cleanName);
+
+        const matched = state.students.filter((st) => {
+          const stMCode = normalizeCode(st.madrasaCode) || "GENERAL";
+          if (stMCode !== mCode) return false;
+          if (gKey && st.groupKey === gKey) return true;
+          return st.name.trim().toLowerCase() === cleanName.toLowerCase();
+        });
+
+        if (matched.length === 0) {
+          return [{ name: cleanName, className: state.studentClass || "5-ാം ക്ലാസ്", madrasaCode: mCode, groupKey: gKey }];
+        }
+        return matched;
+      }
+
+      function getProfileKey() {
+        const cleanName = (state.studentName || "").trim();
+        if (!cleanName) return "GUEST_DEFAULT";
+        const mCode = normalizeCode(state.studentMadrasaCode) || "GENERAL";
+        return `STU:${mCode}:${cleanName.toLowerCase()}`;
+      }
+
+      function getLogStorageKey(profileKey, dateStr) {
+        return `${profileKey}__${dateStr}`;
+      }
+
+      function getCurrentLog() {
+        return mergeLogWithDefault(state.logs[getLogStorageKey(getProfileKey(), state.selectedDate)]);
+      }
+
+      function setSaveFeedback(msg) {
+        const lbl = document.getElementById("saveStatusLabel");
+        if (lbl) lbl.textContent = msg;
+      }
+
+      function saveCurrentLog(updatedLog, isManualSave = false) {
+        const key = getLogStorageKey(getProfileKey(), state.selectedDate);
+        state.logs[key] = mergeLogWithDefault(updatedLog);
+        writeJSON(STORAGE_KEYS.LOGS, state.logs);
+        persistSession();
+        updateSummaryMetrics();
+        renderMonthlyPointsAndLeaderboards();
+        const nowTime = new Date().toLocaleTimeString("ml-IN", { hour: "2-digit", minute: "2-digit" });
+        setSaveFeedback(isManualSave ? `സേവ് ചെയ്തു (${nowTime})` : `ഓട്ടോ-സേവ് ചെയ്തു (${nowTime})`);
+      }
+
+      function persistSession() {
+        writeJSON(STORAGE_KEYS.SESSION, {
+          screen: state.screen,
+          studentName: state.studentName,
+          studentClass: state.studentClass,
+          studentMadrasaCode: state.studentMadrasaCode,
+          activeGroupKey: state.activeGroupKey,
+          selectedDate: state.selectedDate,
+        });
+      }
+
+      function setActiveScreen(screenName) {
+        state.screen = screenName === "tracker" ? "tracker" : "entry";
+        const entryEl = document.getElementById("entryScreenSection");
+        const trackerEl = document.getElementById("trackerWorkspaceContainer");
+        if (entryEl && trackerEl) {
+          if (state.screen === "tracker") {
+            entryEl.classList.add("hidden");
+            trackerEl.classList.remove("hidden");
+          } else {
+            entryEl.classList.remove("hidden");
+            trackerEl.classList.add("hidden");
+          }
+        }
+        persistSession();
+        renderMultiChildSelectorBar();
+      }
+
+      function setActiveMode(newMode, ustadCode = "") {
+        state.mode = newMode;
+        state.activeUstadCode = normalizeCode(ustadCode);
+
+        const adminSection = document.getElementById("adminPanelSection");
+        const ustadSection = document.getElementById("ustadViewSection");
+        const studentSection = document.getElementById("studentTrackerSection");
+
+        adminSection.classList.add("hidden");
+        ustadSection.classList.add("hidden");
+        studentSection.classList.add("hidden");
+
+        if (newMode === "admin") {
+          adminSection.classList.remove("hidden");
+          renderAdminMode();
+        } else if (newMode === "ustad") {
+          ustadSection.classList.remove("hidden");
+          renderUstadMode();
+        } else {
+          studentSection.classList.remove("hidden");
+        }
+
+        updateProfileBannerUI();
+        renderMultiChildSelectorBar();
+      }
+
+      function updateProfileBannerUI() {
+        const banner = document.getElementById("activeProfileBanner");
+        if (!banner) return;
+
+        if (state.mode === "admin") {
+          banner.textContent = "അഡ്മിൻ മോഡ്";
+          return;
+        }
+        if (state.mode === "ustad") {
+          const m = state.madrasas.find((item) => normalizeCode(item.code) === state.activeUstadCode);
+          banner.textContent = m ? `${m.name} — ലിസ്റ്റ്` : state.activeUstadCode;
+          return;
+        }
+
+        const cleanName = (state.studentName || "").trim();
+        const cleanClass = (state.studentClass || "").trim();
+        const foundMadrasa = state.madrasas.find(
+          (m) => normalizeCode(m.code) === normalizeCode(state.studentMadrasaCode)
+        );
+        const mLabel = foundMadrasa ? foundMadrasa.name : "";
+        const metaParts = [cleanClass, mLabel].filter(Boolean).join(" • ");
+
+        if (cleanName) {
+          banner.textContent = metaParts ? `${cleanName} (${metaParts})` : cleanName;
+        } else if (metaParts) {
+          banner.textContent = metaParts;
+        } else {
+          banner.textContent = "ദൈനംദിന അമൽ & ശീല രേഖപ്പെടുത്തൽ";
+        }
+      }
+
+      function updateDateHeaderUI() {
+        const dt = parseISODateLocal(state.selectedDate);
+        const dayIndex = dt.getDay();
+        const isFriday = dayIndex === 5;
+
+        const picker = document.getElementById("datePickerInput");
+        const dayDisp = document.getElementById("dayNameDisplay");
+        const fridayBadge = document.getElementById("fridayBadge");
+
+        if (picker && picker.value !== state.selectedDate) {
+          picker.value = state.selectedDate;
+        }
+        if (dayDisp) {
+          dayDisp.textContent = MALAYALAM_DAYS[dayIndex] || "ദിവസം";
+        }
+        if (fridayBadge) {
+          if (isFriday) fridayBadge.classList.remove("hidden");
+          else fridayBadge.classList.add("hidden");
+        }
+      }
+
+      // Shown ONLY when multiple children were registered together
+      function renderMultiChildSelectorBar() {
+        const bar = document.getElementById("multiChildSelectorBar");
+        const pillsContainer = document.getElementById("multiChildPillsContainer");
+        const groupLabel = document.getElementById("multiChildGroupLabel");
+        if (!bar || !pillsContainer || !groupLabel) return;
+
+        if (state.mode !== "student" || !(state.studentName || "").trim()) {
+          bar.classList.add("hidden");
+          return;
+        }
+
+        const groupChildren = getChildrenInActiveGroup();
+        if (groupChildren.length <= 1) {
+          bar.classList.add("hidden");
+          return;
+        }
+
+        bar.classList.remove("hidden");
+        groupLabel.textContent = `${groupChildren.length} കുട്ടികൾ ചേർത്തിട്ടുണ്ട്. ആരുടെ വിവരങ്ങളാണ് മാറ്റുന്നത് എന്ന് തിരഞ്ഞെടുക്കുക:`;
+        pillsContainer.innerHTML = "";
+
+        groupChildren.forEach((child) => {
+          const isCurrent = child.name.trim().toLowerCase() === state.studentName.trim().toLowerCase();
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = child.className ? `${child.name} (${child.className})` : child.name;
+          btn.className = isCurrent
+            ? "pill-choice px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 text-white text-xs font-extrabold shadow-xs"
+            : "pill-choice px-3.5 py-1.5 rounded-xl bg-white hover:bg-teal-50 text-slate-800 border border-teal-300/80 text-xs font-bold";
+          btn.addEventListener("click", () => {
+            state.studentName = child.name;
+            state.studentClass = child.className || state.studentClass;
+            state.studentMadrasaCode = normalizeCode(child.madrasaCode);
+            const nameInput = document.getElementById("accessEntryInput");
+            if (nameInput) nameInput.value = child.name;
+            persistSession();
+            updateProfileBannerUI();
+            syncTrackerControlsFromLog();
+            showToast(`${child.name} — തിരഞ്ഞെടുത്തു`);
+          });
+          pillsContainer.appendChild(btn);
+        });
+      }
+
+      function buildClassSelectElement(selectedVal, onChangeFn) {
+        const sel = document.createElement("select");
+        sel.className =
+          "px-3.5 py-2.5 rounded-2xl bg-white border-2 border-emerald-200/90 text-xs sm:text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500";
+        CLASS_OPTIONS.forEach((cls) => {
+          const opt = document.createElement("option");
+          opt.value = cls;
+          opt.textContent = cls;
+          sel.appendChild(opt);
+        });
+        sel.value = CLASS_OPTIONS.includes(selectedVal) ? selectedVal : "5-ാം ക്ലാസ്";
+        sel.addEventListener("change", (e) => onChangeFn(e.target.value));
+        return sel;
+      }
+
+      function renderExtraChildInputs() {
+        const container = document.getElementById("extraChildrenInputsContainer");
+        if (!container) return;
+
+        if (state.extraChildren.length === 0) {
+          container.classList.add("hidden");
+          container.innerHTML = "";
+          return;
+        }
+
+        container.classList.remove("hidden");
+        container.innerHTML = "";
+
+        state.extraChildren.forEach((childObj, idx) => {
+          const row = document.createElement("div");
+          row.className = "grid grid-cols-1 sm:grid-cols-12 gap-2 items-center pt-1";
+
+          const nameInput = document.createElement("input");
+          nameInput.type = "text";
+          nameInput.autocomplete = "off";
+          nameInput.value = childObj.name || "";
+          nameInput.placeholder = `കുട്ടിയുടെ പേര് ${idx + 2}`;
+          nameInput.className =
+            "sm:col-span-7 px-4 py-2.5 rounded-2xl bg-white border-2 border-emerald-200/85 text-sm text-slate-900 font-semibold placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500";
+          nameInput.addEventListener("input", (e) => {
+            state.extraChildren[idx].name = e.target.value;
+          });
+
+          const classSelect = buildClassSelectElement(childObj.className || "5-ാം ക്ലാസ്", (newCls) => {
+            state.extraChildren[idx].className = newCls;
+          });
+          classSelect.classList.add("sm:col-span-4");
+
+          const removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.textContent = "✕";
+          removeBtn.ariaLabel = "ഒഴിവാക്കുക";
+          removeBtn.className =
+            "sm:col-span-1 px-3 py-2.5 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-extrabold transition";
+          removeBtn.addEventListener("click", () => {
+            state.extraChildren.splice(idx, 1);
+            renderExtraChildInputs();
+          });
+
+          row.appendChild(nameInput);
+          row.appendChild(classSelect);
+          row.appendChild(removeBtn);
+          container.appendChild(row);
+        });
+      }
+
+      // Render 5 Fardh prayers (each with അദാഅ്, ഖളാഅ്, നിസ്കരിച്ചിട്ടില്ല, ജമാഅത്ത്)
+      function renderFardhPrayers() {
+        const container = document.getElementById("fardhPrayersContainer");
+        if (!container) return;
+        const log = getCurrentLog();
+        container.innerHTML = "";
+
+        FARDH_PRAYERS.forEach((fp) => {
+          const currentStatus = log.fardh[fp.id] || "";
+          const card = document.createElement("div");
+          card.className =
+            "rounded-2xl bg-gradient-to-r from-emerald-50/55 via-white to-teal-50/45 border border-emerald-200/80 p-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5";
+
+          const titleSpan = document.createElement("span");
+          titleSpan.className = "text-sm font-extrabold text-slate-900";
+          titleSpan.textContent = fp.nameMl;
+
+          const optsWrap = document.createElement("div");
+          optsWrap.className = "grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:min-w-[360px]";
+
+          FARDH_STATUS_OPTIONS.forEach((opt) => {
+            const active = currentStatus === opt.value;
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.textContent = opt.label;
+            btn.className = active
+              ? "pill-choice px-2.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-extrabold shadow-xs"
+              : "pill-choice px-2.5 py-2 rounded-xl bg-white hover:bg-emerald-50 text-slate-700 border border-slate-200/90 text-xs font-bold";
+            btn.addEventListener("click", () => {
+              const cur = getCurrentLog();
+              cur.fardh[fp.id] = cur.fardh[fp.id] === opt.value ? "" : opt.value;
+              saveCurrentLog(cur);
+              renderFardhPrayers();
+            });
+            optsWrap.appendChild(btn);
+          });
+
+          card.appendChild(titleSpan);
+          card.appendChild(optsWrap);
+          container.appendChild(card);
+        });
+      }
+
+      // Render Sunnah prayers with exact rak'ah limits + "നിസ്കരിച്ചിട്ടില്ല" option
+      function renderSunnahPrayers() {
+        const container = document.getElementById("sunnahPrayersContainer");
+        if (!container) return;
+        const log = getCurrentLog();
+        container.innerHTML = "";
+
+        SUNNAH_CONFIG.forEach((p) => {
+          const entry = log.sunnah[p.id] || { before: 0, after: 0, notPrayed: false };
+          const totalMax = p.beforeMax + p.afterMax;
+          const totalDone = entry.notPrayed ? 0 : (entry.before || 0) + (entry.after || 0);
+
+          const card = document.createElement("div");
+          card.className =
+            "rounded-2xl bg-gradient-to-r from-teal-50/45 via-white to-emerald-50/40 border border-teal-200/75 p-3.5 space-y-2.5";
+
+          const topRow = document.createElement("div");
+          topRow.className = "flex items-center justify-between gap-2";
+          topRow.innerHTML = `
+            <span class="font-extrabold text-sm text-slate-900">${escapeHTML(p.nameMl)}</span>
+            <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full ${
+              entry.notPrayed
+                ? "bg-rose-100 text-rose-800"
+                : totalDone > 0
+                ? "bg-emerald-100 text-emerald-800"
+                : "bg-slate-100 text-slate-700"
+            }">
+              ${entry.notPrayed ? "നിസ്കരിച്ചിട്ടില്ല" : `${totalDone} / ${totalMax} റക്അത്ത്`}
+            </span>
+          `;
+
+          const controlsRow = document.createElement("div");
+          controlsRow.className = "grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center";
+
+          // Before input
+          const beforeBox = document.createElement("div");
+          beforeBox.className =
+            "sm:col-span-4 flex items-center justify-between gap-2 bg-white px-3 py-2 rounded-xl border border-teal-200/70";
+          beforeBox.innerHTML = `<span class="text-xs font-bold text-slate-700">${escapeHTML(p.beforeLabel)}</span>`;
+          const beforeInput = document.createElement("input");
+          beforeInput.type = "number";
+          beforeInput.min = "0";
+          beforeInput.max = String(p.beforeMax);
+          beforeInput.step = "1";
+          beforeInput.disabled = Boolean(entry.notPrayed);
+          beforeInput.value = entry.notPrayed ? "0" : String(entry.before ?? 0);
+          beforeInput.className =
+            "w-16 px-2 py-1 rounded-lg bg-teal-50/60 border border-teal-200 text-center text-sm font-extrabold text-slate-900 disabled:opacity-45 focus:outline-none focus:ring-2 focus:ring-teal-500";
+          beforeInput.addEventListener("input", (e) => {
+            const val = Math.max(0, Math.min(p.beforeMax, Number(e.target.value) || 0));
+            e.target.value = String(val);
+            const cur = getCurrentLog();
+            cur.sunnah[p.id].notPrayed = false;
+            cur.sunnah[p.id].before = val;
+            saveCurrentLog(cur);
+            renderSunnahPrayers();
+          });
+          beforeBox.appendChild(beforeInput);
+
+          // After input or "ശേഷം ഇല്ല"
+          const afterBox = document.createElement("div");
+          afterBox.className =
+            "sm:col-span-4 flex items-center justify-between gap-2 bg-white px-3 py-2 rounded-xl border border-teal-200/70";
+          if (p.afterMax > 0) {
+            afterBox.innerHTML = `<span class="text-xs font-bold text-slate-700">${escapeHTML(p.afterLabel)}</span>`;
+            const afterInput = document.createElement("input");
+            afterInput.type = "number";
+            afterInput.min = "0";
+            afterInput.max = String(p.afterMax);
+            afterInput.step = "1";
+            afterInput.disabled = Boolean(entry.notPrayed);
+            afterInput.value = entry.notPrayed ? "0" : String(entry.after ?? 0);
+            afterInput.className =
+              "w-16 px-2 py-1 rounded-lg bg-teal-50/60 border border-teal-200 text-center text-sm font-extrabold text-slate-900 disabled:opacity-45 focus:outline-none focus:ring-2 focus:ring-teal-500";
+            afterInput.addEventListener("input", (e) => {
+              const val = Math.max(0, Math.min(p.afterMax, Number(e.target.value) || 0));
+              e.target.value = String(val);
+              const cur = getCurrentLog();
+              cur.sunnah[p.id].notPrayed = false;
+              cur.sunnah[p.id].after = val;
+              saveCurrentLog(cur);
+              renderSunnahPrayers();
+            });
+            afterBox.appendChild(afterInput);
+          } else {
+            afterBox.className += " text-slate-400 justify-center";
+            afterBox.innerHTML = `<span class="text-xs font-semibold">${escapeHTML(p.afterLabel)}</span>`;
+          }
+
+          // "നിസ്കരിച്ചിട്ടില്ല" button
+          const notPrayedBtn = document.createElement("button");
+          notPrayedBtn.type = "button";
+          notPrayedBtn.textContent = "നിസ്കരിച്ചിട്ടില്ല";
+          notPrayedBtn.className = entry.notPrayed
+            ? "sm:col-span-4 pill-choice px-3 py-2 rounded-xl bg-rose-600 text-white text-xs font-extrabold shadow-xs"
+            : "sm:col-span-4 pill-choice px-3 py-2 rounded-xl bg-white hover:bg-rose-50 text-slate-700 border border-slate-200 text-xs font-bold";
+          notPrayedBtn.addEventListener("click", () => {
+            const cur = getCurrentLog();
+            const nextState = !cur.sunnah[p.id].notPrayed;
+            cur.sunnah[p.id].notPrayed = nextState;
+            if (nextState) {
+              cur.sunnah[p.id].before = 0;
+              cur.sunnah[p.id].after = 0;
+            }
+            saveCurrentLog(cur);
+            renderSunnahPrayers();
+          });
+
+          controlsRow.appendChild(beforeBox);
+          controlsRow.appendChild(afterBox);
+          controlsRow.appendChild(notPrayedBtn);
+
+          card.appendChild(topRow);
+          card.appendChild(controlsRow);
+          container.appendChild(card);
+        });
+      }
+
+      function renderTimeSelectors() {
+        const log = getCurrentLog();
+
+        const mobileContainer = document.getElementById("mobileUsageOptions");
+        if (mobileContainer) {
+          mobileContainer.innerHTML = "";
+          MOBILE_USAGE_OPTIONS.forEach((opt) => {
+            const isSelected = log.mobileUsage === opt;
+            const isNoneOpt = opt === "ഉപയോഗിച്ചില്ല";
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.textContent = opt;
+            btn.className = isSelected
+              ? "pill-choice px-3 py-2.5 rounded-2xl bg-gradient-to-r from-sky-600 to-cyan-600 text-white text-xs sm:text-sm font-extrabold shadow-sm"
+              : isNoneOpt
+              ? "pill-choice px-3 py-2.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-950 border border-emerald-300/80 text-xs sm:text-sm font-bold"
+              : "pill-choice px-3 py-2.5 rounded-2xl bg-white hover:bg-sky-50 text-slate-700 border border-sky-200/80 text-xs sm:text-sm font-semibold";
+            btn.addEventListener("click", () => {
+              const cur = getCurrentLog();
+              cur.mobileUsage = cur.mobileUsage === opt ? "" : opt;
+              saveCurrentLog(cur);
+              renderTimeSelectors();
+            });
+            mobileContainer.appendChild(btn);
+          });
+        }
+
+        const readingContainer = document.getElementById("readingTimeOptions");
+        if (readingContainer) {
+          readingContainer.innerHTML = "";
+          READING_TIME_OPTIONS.forEach((opt) => {
+            const isSelected = log.readingTime === opt;
+            const isNoneOpt = opt === "വായിച്ചിട്ടില്ല";
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.textContent = opt;
+            btn.className = isSelected
+              ? "pill-choice px-3 py-2.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs sm:text-sm font-extrabold shadow-sm"
+              : isNoneOpt
+              ? "pill-choice px-3 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300/80 text-xs sm:text-sm font-bold"
+              : "pill-choice px-3 py-2.5 rounded-2xl bg-white hover:bg-indigo-50 text-slate-700 border border-indigo-200/80 text-xs sm:text-sm font-semibold";
+            btn.addEventListener("click", () => {
+              const cur = getCurrentLog();
+              cur.readingTime = cur.readingTime === opt ? "" : opt;
+              saveCurrentLog(cur);
+              renderTimeSelectors();
+            });
+            readingContainer.appendChild(btn);
+          });
+        }
+      }
+
+      function updateSummaryMetrics() {
+        const log = getCurrentLog();
+        const dt = parseISODateLocal(state.selectedDate);
+        const isFriday = dt.getDay() === 5;
+
+        // Fardh badge (0 when non-prayer toggle is ON)
+        let fardhCompleted = 0;
+        if (!log.nonPrayer) {
+          FARDH_PRAYERS.forEach((fp) => {
+            const st = log.fardh[fp.id];
+            if (st === "adaa" || st === "qada" || st === "jamaah") fardhCompleted += 1;
+          });
+        }
+        document.getElementById("fardhSummaryBadge").textContent = `${fardhCompleted} / 5 ഫർള്`;
+
+        // Sunnah total out of 20 (Subh 2 + Dhuhr 8 + Asr 4 + Maghrib 4 + Isha 4)
+        let sunnahDone = 0;
+        if (!log.nonPrayer) {
+          SUNNAH_CONFIG.forEach((p) => {
+            const s = log.sunnah[p.id];
+            if (s && !s.notPrayed) {
+              sunnahDone += (s.before || 0) + (s.after || 0);
+            }
+          });
+        }
+        document.getElementById("sunnahSummaryBadge").textContent = `${sunnahDone} / 20 റക്അത്ത്`;
+
+        // Dhikr counts & badge
+        const istNum = Math.max(0, Number(log.dhikr.istighfarCount) || 0);
+        const salNum = Math.max(0, Number(log.dhikr.salawatCount) || 0);
+        document.getElementById("istighfarBadge").textContent = `${istNum} എണ്ണം`;
+        document.getElementById("salawatBadge").textContent = `${salNum} എണ്ണം`;
+
+        let dhikrDoneCount = 0;
+        if (log.dhikr.haddadDone) dhikrDoneCount += 1;
+        if (istNum > 0) dhikrDoneCount += 1;
+        if (salNum > 0) dhikrDoneCount += 1;
+        document.getElementById("dhikrSummaryBadge").textContent = `${dhikrDoneCount} / 3 പൂർണ്ണം`;
+
+        // Completion percentage
+        let totalChecks = 0;
+        let completedChecks = 0;
+
+        if (!log.nonPrayer) {
+          totalChecks += 5 + 20 + 3; // 5 Fardh + 20 Sunnah rak'ahs + Duha + Witr + Tahajjud
+          completedChecks += fardhCompleted + sunnahDone;
+          if (log.duha) completedChecks += 1;
+          if (log.witr) completedChecks += 1;
+          if (log.tahajjud) completedChecks += 1;
+        }
+
+        totalChecks += 3 + 3 + 2; // 3 Dhikr + 3 Quran checkboxes + Mobile + Reading
+        completedChecks += dhikrDoneCount;
+        if (log.quran.mulk) completedChecks += 1;
+        if (log.quran.waqiah) completedChecks += 1;
+        if (log.quran.portionDone) completedChecks += 1;
+        if (log.mobileUsage) completedChecks += 1;
+        if (log.readingTime) completedChecks += 1;
+
+        if (!log.nonPrayer && (isFriday || state.fridayPreviewOnNonFriday)) {
+          totalChecks += 2;
+          if (log.friday.kahf) completedChecks += 1;
+          if (log.friday.nail) completedChecks += 1;
+        }
+
+        const pct = totalChecks > 0 ? Math.round((completedChecks / totalChecks) * 100) : 0;
+        document.getElementById("completionPercentBadge").textContent = `${pct}%`;
+
+        const dayPts = computeDailyTopicPoints(log);
+        document.getElementById("todayPointsBadge").textContent = `${dayPts.total} pts`;
+      }
+
+      function syncTrackerControlsFromLog() {
+        const log = getCurrentLog();
+
+        const nonPrayerToggle = document.getElementById("nonPrayerToggle");
+        const nonPrayerStatusText = document.getElementById("nonPrayerStatusText");
+        nonPrayerToggle.checked = Boolean(log.nonPrayer);
+        nonPrayerStatusText.textContent = log.nonPrayer ? "ഓൺ" : "ഓഫ്";
+        nonPrayerStatusText.className = log.nonPrayer
+          ? "ml-2.5 text-xs font-extrabold text-amber-700"
+          : "ml-2.5 text-xs font-extrabold text-slate-600";
+
+        document.getElementById("duhaPrayerCheckbox").checked = Boolean(log.duha);
+        document.getElementById("witrPrayerCheckbox").checked = Boolean(log.witr);
+        document.getElementById("tahajjudPrayerCheckbox").checked = Boolean(log.tahajjud);
+
+        document.getElementById("haddadCompletedCheckbox").checked = Boolean(log.dhikr.haddadDone);
+        document.getElementById("istighfarCountInput").value = log.dhikr.istighfarCount;
+        document.getElementById("salawatCountInput").value = log.dhikr.salawatCount;
+
+        document.getElementById("surahMulkCheckbox").checked = Boolean(log.quran.mulk);
+        document.getElementById("surahWaqiahCheckbox").checked = Boolean(log.quran.waqiah);
+        document.getElementById("quranPortionDoneCheckbox").checked = Boolean(log.quran.portionDone);
+
+        document.getElementById("fridayKahfCheckbox").checked = Boolean(log.friday.kahf);
+        document.getElementById("fridayNailCheckbox").checked = Boolean(log.friday.nail);
+
+        const allPrayersWrapper = document.getElementById("allPrayersWrapper");
+        const surahsQuranSection = document.getElementById("surahsQuranSection");
+        const fridayCard = document.getElementById("fridaySpecialCard");
+        const hiddenBanner = document.getElementById("nonPrayerHiddenBanner");
+
+        if (log.nonPrayer) {
+          allPrayersWrapper.classList.add("hidden");
+          if (surahsQuranSection) surahsQuranSection.classList.add("hidden");
+          fridayCard.classList.add("hidden");
+          hiddenBanner.classList.remove("hidden");
+        } else {
+          allPrayersWrapper.classList.remove("hidden");
+          if (surahsQuranSection) surahsQuranSection.classList.remove("hidden");
+          fridayCard.classList.remove("hidden");
+          hiddenBanner.classList.add("hidden");
+
+          const dt = parseISODateLocal(state.selectedDate);
+          const isFriday = dt.getDay() === 5;
+          const itemsContainer = document.getElementById("fridayItemsContainer");
+          const excusedNotice = document.getElementById("fridayExcusedHiddenNotice");
+          const notTodayNotice = document.getElementById("fridayNotTodayNotice");
+          const previewBtn = document.getElementById("toggleFridayPreviewBtn");
+
+          excusedNotice.classList.add("hidden");
+          previewBtn.textContent = state.fridayPreviewOnNonFriday ? "പ്രിവ്യൂ മറയ്ക്കുക" : "പ്രിവ്യൂ കാണുക";
+
+          if (isFriday || state.fridayPreviewOnNonFriday) {
+            itemsContainer.classList.remove("hidden");
+            notTodayNotice.classList.add("hidden");
+          } else {
+            itemsContainer.classList.add("hidden");
+            notTodayNotice.classList.remove("hidden");
+          }
+        }
+
+        renderFardhPrayers();
+        renderSunnahPrayers();
+        renderTimeSelectors();
+        updateSummaryMetrics();
+        renderMonthlyPointsAndLeaderboards();
+      }
+
+      function renderMonthlyPointsAndLeaderboards() {
+        const yearMonth = state.selectedDate.slice(0, 7);
+        const activeBreakdown = computeMonthlyBreakdownForProfile(getProfileKey(), yearMonth);
+
+        document.getElementById("monthlyTotalPointsBadge").textContent =
+          `മാസത്തെ ആകെ പോയിന്റ്: ${activeBreakdown.total}`;
+
+        const topicItems = [
+          { label: "ഫർള് നിസ്കാരങ്ങൾ", pts: activeBreakdown.fardh, badgeClass: "text-emerald-800 bg-emerald-100" },
+          { label: "സുന്നത്ത് / ളുഹാ / വിത്ർ / തഹജ്ജുദ്", pts: activeBreakdown.sunnah, badgeClass: "text-teal-900 bg-teal-100" },
+          { label: "ദിക്ർ (ഹദ്ദാദ്, ഇസ്തിഗ്ഫാർ, സ്വലാത്ത്)", pts: activeBreakdown.dhikr, badgeClass: "text-amber-900 bg-amber-100" },
+          { label: "സൂറത്തുകൾ & ഖുർആൻ ഭാഗം", pts: activeBreakdown.quran, badgeClass: "text-purple-900 bg-purple-100" },
+          { label: "വെള്ളിയാഴ്ച (കഹ്ഫ് & നഖം)", pts: activeBreakdown.friday, badgeClass: "text-orange-900 bg-orange-100" },
+          { label: "മൊബൈൽ ഉപയോഗം", pts: activeBreakdown.mobile, badgeClass: "text-sky-900 bg-sky-100" },
+          { label: "പുസ്തകം വായിച്ച സമയം", pts: activeBreakdown.reading, badgeClass: "text-indigo-900 bg-indigo-100" },
+        ];
+
+        const breakdownEl = document.getElementById("monthlyPointsBreakdown");
+        if (breakdownEl) {
+          breakdownEl.innerHTML = "";
+          topicItems.forEach((item) => {
+            const box = document.createElement("div");
+            box.className =
+              "rounded-2xl bg-white/95 border border-slate-200/85 px-3.5 py-2.5 flex items-center justify-between shadow-2xs";
+            box.innerHTML = `
+              <span class="text-xs font-bold text-slate-700">${escapeHTML(item.label)}</span>
+              <span class="text-xs sm:text-sm font-extrabold px-2.5 py-0.5 rounded-full ${item.badgeClass}">${item.pts} pts</span>
+            `;
+            breakdownEl.appendChild(box);
+          });
+        }
+
+        const standings = state.students.map((st) => {
+          const code = normalizeCode(st.madrasaCode);
+          const pKey = `STU:${code}:${st.name.trim().toLowerCase()}`;
+          const mPts = computeMonthlyBreakdownForProfile(pKey, yearMonth).total;
+          return {
+            id: st.id,
+            name: st.name,
+            madrasaCode: code,
+            className: st.className || "5-ാം ക്ലാസ്",
+            points: mPts,
+          };
+        });
+
+        const classListEl = document.getElementById("classLeaderboardList");
+        if (classListEl) {
+          classListEl.innerHTML = "";
+          const sortedClass = [...standings].sort((a, b) => b.points - a.points);
+          if (sortedClass.length === 0) {
+            classListEl.innerHTML = `<p class="text-slate-500">വിദ്യാർത്ഥി വിവരങ്ങൾ ലഭ്യമല്ല.</p>`;
+          } else {
+            sortedClass.forEach((entry, idx) => {
+              const isFirst = idx === 0;
+              const row = document.createElement("div");
+              row.className = isFirst
+                ? "flex items-center justify-between bg-emerald-600 text-white px-3.5 py-2.5 rounded-xl shadow-xs"
+                : "flex items-center justify-between bg-white px-3.5 py-2 rounded-xl border border-emerald-200/70";
+              row.innerHTML = `
+                <div>
+                  <span class="font-extrabold">#${idx + 1} ${escapeHTML(entry.name)}</span>
+                  <span class="${isFirst ? "text-emerald-100" : "text-slate-500"} ml-1.5">(${escapeHTML(entry.className)})</span>
+                </div>
+                <span class="font-extrabold ${isFirst ? "text-amber-300" : "text-emerald-700"}">${entry.points} പോയിന്റ്</span>
+              `;
+              classListEl.appendChild(row);
+            });
+          }
+        }
+
+        const madrasaListEl = document.getElementById("madrasaLeaderboardList");
+        if (madrasaListEl) {
+          madrasaListEl.innerHTML = "";
+          if (state.madrasas.length === 0) {
+            madrasaListEl.innerHTML = `<p class="text-slate-500">മദ്രസ വിവരങ്ങൾ ലഭ്യമല്ല.</p>`;
+          } else {
+            state.madrasas.forEach((m) => {
+              const mCode = normalizeCode(m.code);
+              const mStudents = standings
+                .filter((s) => s.madrasaCode === mCode)
+                .sort((a, b) => b.points - a.points);
+              const topStudent = mStudents[0];
+              const row = document.createElement("div");
+              row.className =
+                "flex items-center justify-between bg-white px-3.5 py-2.5 rounded-xl border border-amber-200/80 shadow-2xs";
+              row.innerHTML = `
+                <div>
+                  <span class="font-extrabold text-slate-900">${escapeHTML(m.name)}</span>
+                  <span class="block text-[11px] text-slate-600 mt-0.5">
+                    ${
+                      topStudent
+                        ? `ഒന്നാമൻ: <strong class="text-amber-900">${escapeHTML(topStudent.name)}</strong>`
+                        : "വിദ്യാർത്ഥികളില്ല"
+                    }
+                  </span>
+                </div>
+                <span class="font-extrabold text-amber-800 bg-amber-100 px-2.5 py-1 rounded-full">${topStudent ? topStudent.points : 0} പോയിന്റ്</span>
+              `;
+              madrasaListEl.appendChild(row);
+            });
+          }
+        }
+      }
+
+      function renderMadrasaAndClassDropdowns() {
+        const studentSelect = document.getElementById("studentMadrasaSelect");
+        const adminSelect = document.getElementById("adminStudentMadrasa");
+        const primaryClassSelect = document.getElementById("primaryChildClassSelect");
+        const adminClassSelect = document.getElementById("adminStudentClass");
+
+        if (primaryClassSelect) {
+          primaryClassSelect.innerHTML = "";
+          CLASS_OPTIONS.forEach((cls) => {
+            const opt = document.createElement("option");
+            opt.value = cls;
+            opt.textContent = cls;
+            primaryClassSelect.appendChild(opt);
+          });
+          primaryClassSelect.value = CLASS_OPTIONS.includes(state.studentClass)
+            ? state.studentClass
+            : "5-ാം ക്ലാസ്";
+        }
+
+        if (adminClassSelect) {
+          adminClassSelect.innerHTML = "";
+          CLASS_OPTIONS.forEach((cls) => {
+            const opt = document.createElement("option");
+            opt.value = cls;
+            opt.textContent = cls;
+            adminClassSelect.appendChild(opt);
+          });
+        }
+
+        if (studentSelect) {
+          const prevVal = state.studentMadrasaCode;
+          studentSelect.innerHTML = `<option value="">മദ്രസ തിരഞ്ഞെടുക്കുക</option>`;
+          state.madrasas.forEach((m) => {
+            const opt = document.createElement("option");
+            opt.value = normalizeCode(m.code);
+            opt.textContent = m.name;
+            studentSelect.appendChild(opt);
+          });
+          if (prevVal) studentSelect.value = normalizeCode(prevVal);
+        }
+
+        if (adminSelect) {
+          const curAdminVal = adminSelect.value;
+          adminSelect.innerHTML = "";
+          state.madrasas.forEach((m) => {
+            const opt = document.createElement("option");
+            opt.value = normalizeCode(m.code);
+            opt.textContent = `${m.name} (${normalizeCode(m.code)})`;
+            adminSelect.appendChild(opt);
+          });
+          if (curAdminVal) adminSelect.value = curAdminVal;
+        }
+      }
+
+      function renderAdminMode() {
+        renderMadrasaAndClassDropdowns();
+
+        const ustadToggle = document.getElementById("ustadAccessToggle");
+        const ustadLabel = document.getElementById("ustadAccessStatusLabel");
+        if (ustadToggle && ustadLabel) {
+          const allowed = Boolean(state.settings && state.settings.allowUstadView);
+          ustadToggle.checked = allowed;
+          ustadLabel.textContent = allowed ? "ഓൺ" : "ഓഫ്";
+        }
+
+        const madrasaListEl = document.getElementById("adminMadrasaList");
+        if (madrasaListEl) {
+          madrasaListEl.innerHTML = "";
+          state.madrasas.forEach((m) => {
+            const card = document.createElement("div");
+            card.className =
+              "flex items-center justify-between gap-2 p-3 rounded-xl bg-white border border-emerald-200/80 shadow-2xs";
+            card.innerHTML = `
+              <div>
+                <p class="text-sm font-extrabold text-slate-900">${escapeHTML(m.name)}</p>
+                <p class="text-xs font-mono font-bold text-emerald-700 mt-0.5">കോഡ്: ${escapeHTML(normalizeCode(m.code))}</p>
+              </div>
+              <button
+                type="button"
+                data-delete-madrasa="${escapeHTML(m.id)}"
+                class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold border border-rose-200 transition"
+              >
+                നീക്കുക
+              </button>
+            `;
+            madrasaListEl.appendChild(card);
+          });
+
+          madrasaListEl.querySelectorAll("[data-delete-madrasa]").forEach((btn) => {
+            btn.addEventListener("click", () => {
+              const idToDel = btn.getAttribute("data-delete-madrasa");
+              state.madrasas = state.madrasas.filter((item) => item.id !== idToDel);
+              writeJSON(STORAGE_KEYS.MADRASAS, state.madrasas);
+              renderAdminMode();
+              renderMonthlyPointsAndLeaderboards();
+              showToast("മദ്രസ നീക്കം ചെയ്തു");
+            });
+          });
+        }
+
+        const dirEl = document.getElementById("adminStudentDirectory");
+        if (dirEl) {
+          const ym = state.selectedDate.slice(0, 7);
+          dirEl.innerHTML = "";
+          if (state.students.length === 0) {
+            dirEl.innerHTML = `<p class="text-xs text-slate-500">വിദ്യാർത്ഥികൾ ചേർത്തിട്ടില്ല.</p>`;
+          } else {
+            state.students.forEach((st) => {
+              const mObj = state.madrasas.find(
+                (m) => normalizeCode(m.code) === normalizeCode(st.madrasaCode)
+              );
+              const pKey = `STU:${normalizeCode(st.madrasaCode)}:${st.name.trim().toLowerCase()}`;
+              const mPts = computeMonthlyBreakdownForProfile(pKey, ym).total;
+              const row = document.createElement("div");
+              row.className =
+                "flex items-center justify-between gap-2 p-3 rounded-xl bg-white border border-amber-200/80 text-xs sm:text-sm";
+              row.innerHTML = `
+                <div>
+                  <span class="font-extrabold text-slate-900">${escapeHTML(st.name)}</span>
+                  <span class="text-slate-500 ml-2">${escapeHTML(st.className || "")}</span>
+                  <span class="ml-2 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200">
+                    ${escapeHTML(mObj ? mObj.name : st.madrasaCode)}
+                  </span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="font-extrabold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full text-xs">${mPts} pts</span>
+                  <button
+                    type="button"
+                    data-delete-student="${escapeHTML(st.id)}"
+                    class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold border border-rose-200 transition"
+                  >
+                    നീക്കുക
+                  </button>
+                </div>
+              `;
+              dirEl.appendChild(row);
+            });
+
+            dirEl.querySelectorAll("[data-delete-student]").forEach((btn) => {
+              btn.addEventListener("click", () => {
+                const stId = btn.getAttribute("data-delete-student");
+                state.students = state.students.filter((s) => s.id !== stId);
+                writeJSON(STORAGE_KEYS.STUDENTS, state.students);
+                renderAdminMode();
+                renderMonthlyPointsAndLeaderboards();
+                showToast("വിദ്യാർത്ഥിയെ നീക്കം ചെയ്തു");
+              });
+            });
+          }
+        }
+      }
+
+      function renderUstadMode() {
+        const code = normalizeCode(state.activeUstadCode);
+        const foundMadrasa = state.madrasas.find((m) => normalizeCode(m.code) === code);
+        const titleEl = document.getElementById("ustadMadrasaTitle");
+        const subEl = document.getElementById("ustadMadrasaSubtitle");
+        const listEl = document.getElementById("ustadStudentList");
+
+        titleEl.textContent = foundMadrasa ? foundMadrasa.name : "മദ്രസ ലിസ്റ്റ്";
+        subEl.textContent = `തീയതി: ${state.selectedDate}`;
+
+        const roster = state.students.filter((s) => normalizeCode(s.madrasaCode) === code);
+        listEl.innerHTML = "";
+
+        if (roster.length === 0) {
+          listEl.innerHTML = `<p class="text-sm text-slate-600">വിദ്യാർത്ഥികൾ ലഭ്യമല്ല.</p>`;
+          return;
+        }
+
+        const ym = state.selectedDate.slice(0, 7);
+        roster.forEach((st) => {
+          const pKey = `STU:${code}:${st.name.trim().toLowerCase()}`;
+          const mPts = computeMonthlyBreakdownForProfile(pKey, ym).total;
+          const card = document.createElement("div");
+          card.className =
+            "flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-white border border-teal-200/80 shadow-2xs";
+          card.innerHTML = `
+            <div>
+              <p class="text-sm font-extrabold text-slate-900">${escapeHTML(st.name)}</p>
+              <p class="text-xs text-slate-500 mt-0.5">${escapeHTML(st.className || "")}</p>
+            </div>
+            <span class="text-xs font-extrabold px-3 py-1 rounded-full bg-emerald-100 text-emerald-900">
+              ${mPts} പോയിന്റ്
+            </span>
+          `;
+          listEl.appendChild(card);
+        });
+      }
+
+      function handleAccessSubmit() {
+        const inputEl = document.getElementById("accessEntryInput");
+        const primaryClassEl = document.getElementById("primaryChildClassSelect");
+        const madrasaSelectEl = document.getElementById("studentMadrasaSelect");
+        if (!inputEl) return;
+
+        const rawVal = inputEl.value.trim();
+
+        // 1. Hidden Main Admin Trigger ("Cv 313")
+        if (isAdminSecretInput(rawVal)) {
+          inputEl.value = "";
+          state.extraChildren = [];
+          renderExtraChildInputs();
+          setActiveMode("admin");
+          setActiveScreen("tracker");
+          showToast("അഡ്മിൻ പാനൽ തുറന്നു");
+          return;
+        }
+
+        // 2. Hidden Madrasa Code Trigger for Ustad View (controlled by Admin setting)
+        const matchedMadrasa = state.madrasas.find(
+          (m) => normalizeCode(m.code) === normalizeCode(rawVal)
+        );
+        if (matchedMadrasa && rawVal.length > 0) {
+          if (!state.settings || state.settings.allowUstadView === false) {
+            showToast("ഉസ്താദ് ആക്‌സസ് നിലവിൽ ഓഫ് ആണ്");
+            return;
+          }
+          inputEl.value = "";
+          state.extraChildren = [];
+          renderExtraChildInputs();
+          setActiveMode("ustad", normalizeCode(matchedMadrasa.code));
+          setActiveScreen("tracker");
+          showToast(`${matchedMadrasa.name} തുറന്നു`);
+          return;
+        }
+
+        // 3. Student Name Entry (Single or Multiple Children under same Madrasa)
+        if (!rawVal) {
+          showToast("വിദ്യാർത്ഥിയുടെ പേര് എഴുതുക");
+          return;
+        }
+
+        const chosenMadrasaCode =
+          (madrasaSelectEl && madrasaSelectEl.value
+            ? normalizeCode(madrasaSelectEl.value)
+            : normalizeCode(state.studentMadrasaCode)) ||
+          (state.madrasas[0] ? normalizeCode(state.madrasas[0].code) : "GENERAL");
+
+        const primaryClass = (primaryClassEl && primaryClassEl.value) || "5-ാം ക്ലാസ്";
+
+        const extraValid = state.extraChildren
+          .map((c) => ({
+            name: (c.name || "").trim(),
+            className: c.className || primaryClass,
+          }))
+          .filter((c) => c.name.length > 0);
+
+        const batchList = [{ name: rawVal, className: primaryClass }, ...extraValid];
+        const groupKey = batchList.length > 1 ? buildGroupKey(chosenMadrasaCode, rawVal) : "";
+
+        batchList.forEach((child) => {
+          const existingIdx = state.students.findIndex(
+            (s) =>
+              s.name.trim().toLowerCase() === child.name.toLowerCase() &&
+              (normalizeCode(s.madrasaCode) || "GENERAL") === chosenMadrasaCode
+          );
+          if (existingIdx >= 0) {
+            state.students[existingIdx].className = child.className;
+            if (groupKey) {
+              state.students[existingIdx].groupKey = groupKey;
+            }
+          } else {
+            state.students.push({
+              id: `st-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+              name: child.name,
+              madrasaCode: chosenMadrasaCode,
+              className: child.className,
+              groupKey: groupKey || undefined,
+            });
+          }
+        });
+
+        writeJSON(STORAGE_KEYS.STUDENTS, state.students);
+
+        state.studentName = rawVal;
+        state.studentClass = primaryClass;
+        state.studentMadrasaCode = chosenMadrasaCode;
+        state.activeGroupKey = groupKey;
+        state.extraChildren = [];
+        renderExtraChildInputs();
+        persistSession();
+
+        setActiveMode("student");
+        setActiveScreen("tracker");
+        syncTrackerControlsFromLog();
+        renderMultiChildSelectorBar();
+
+        if (batchList.length > 1) {
+          showToast(`${batchList.length} കുട്ടികളുടെ വിവരങ്ങൾ ചേർത്തു`);
+        } else {
+          showToast(`${rawVal} — തുറന്നു`);
+        }
+      }
+
+      function bindEvents() {
+        document.getElementById("toastCloseBtn").addEventListener("click", () => {
+          document.getElementById("toastBanner").classList.add("hidden");
+        });
+
+        document.getElementById("addExtraChildNameBtn").addEventListener("click", () => {
+          const curClass = document.getElementById("primaryChildClassSelect").value || "5-ാം ക്ലാസ്";
+          state.extraChildren.push({ name: "", className: curClass });
+          renderExtraChildInputs();
+        });
+
+        document.getElementById("primaryChildClassSelect").addEventListener("change", (e) => {
+          state.studentClass = e.target.value;
+          persistSession();
+        });
+
+        document.getElementById("backToEntryScreenBtn").addEventListener("click", () => {
+          const nameInput = document.getElementById("accessEntryInput");
+          const madrasaSelect = document.getElementById("studentMadrasaSelect");
+          if (nameInput && state.mode === "student" && state.studentName) {
+            nameInput.value = state.studentName;
+          }
+          if (madrasaSelect && state.studentMadrasaCode) {
+            madrasaSelect.value = state.studentMadrasaCode;
+          }
+          renderMadrasaAndClassDropdowns();
+          setActiveScreen("entry");
+        });
+
+        document.getElementById("universalSaveBtn").addEventListener("click", () => {
+          const cur = getCurrentLog();
+          saveCurrentLog(cur, true);
+          renderMultiChildSelectorBar();
+          showToast("വിവരങ്ങൾ സേവ് ചെയ്തു");
+        });
+
+        document.getElementById("prevDayBtn").addEventListener("click", () => {
+          state.selectedDate = shiftISODate(state.selectedDate, -1);
+          persistSession();
+          updateDateHeaderUI();
+          syncTrackerControlsFromLog();
+        });
+
+        document.getElementById("nextDayBtn").addEventListener("click", () => {
+          state.selectedDate = shiftISODate(state.selectedDate, 1);
+          persistSession();
+          updateDateHeaderUI();
+          syncTrackerControlsFromLog();
+        });
+
+        document.getElementById("todayBtn").addEventListener("click", () => {
+          state.selectedDate = toLocalISODate(new Date());
+          persistSession();
+          updateDateHeaderUI();
+          syncTrackerControlsFromLog();
+        });
+
+        document.getElementById("datePickerInput").addEventListener("change", (e) => {
+          if (e.target.value) {
+            state.selectedDate = e.target.value;
+            persistSession();
+            updateDateHeaderUI();
+            syncTrackerControlsFromLog();
+          }
+        });
+
+        document.getElementById("accessSubmitBtn").addEventListener("click", handleAccessSubmit);
+        document.getElementById("accessEntryInput").addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            handleAccessSubmit();
+          }
+        });
+
+        document.getElementById("studentMadrasaSelect").addEventListener("change", (e) => {
+          state.studentMadrasaCode = normalizeCode(e.target.value);
+          persistSession();
+          updateProfileBannerUI();
+          syncTrackerControlsFromLog();
+        });
+
+        document.getElementById("nonPrayerToggle").addEventListener("change", (e) => {
+          const cur = getCurrentLog();
+          cur.nonPrayer = Boolean(e.target.checked);
+          saveCurrentLog(cur);
+          syncTrackerControlsFromLog();
+        });
+
+        document.getElementById("duhaPrayerCheckbox").addEventListener("change", (e) => {
+          const cur = getCurrentLog();
+          cur.duha = Boolean(e.target.checked);
+          saveCurrentLog(cur);
+          updateSummaryMetrics();
+        });
+
+        document.getElementById("witrPrayerCheckbox").addEventListener("change", (e) => {
+          const cur = getCurrentLog();
+          cur.witr = Boolean(e.target.checked);
+          saveCurrentLog(cur);
+          updateSummaryMetrics();
+        });
+
+        document.getElementById("tahajjudPrayerCheckbox").addEventListener("change", (e) => {
+          const cur = getCurrentLog();
+          cur.tahajjud = Boolean(e.target.checked);
+          saveCurrentLog(cur);
+          updateSummaryMetrics();
+        });
+
+        document.getElementById("haddadCompletedCheckbox").addEventListener("change", (e) => {
+          const cur = getCurrentLog();
+          cur.dhikr.haddadDone = Boolean(e.target.checked);
+          saveCurrentLog(cur);
+        });
+
+        document.getElementById("istighfarCountInput").addEventListener("input", (e) => {
+          const cur = getCurrentLog();
+          cur.dhikr.istighfarCount = e.target.value;
+          saveCurrentLog(cur);
+        });
+
+        document.getElementById("salawatCountInput").addEventListener("input", (e) => {
+          const cur = getCurrentLog();
+          cur.dhikr.salawatCount = e.target.value;
+          saveCurrentLog(cur);
+        });
+
+        document.getElementById("surahMulkCheckbox").addEventListener("change", (e) => {
+          const cur = getCurrentLog();
+          cur.quran.mulk = Boolean(e.target.checked);
+          saveCurrentLog(cur);
+          updateSummaryMetrics();
+        });
+
+        document.getElementById("surahWaqiahCheckbox").addEventListener("change", (e) => {
+          const cur = getCurrentLog();
+          cur.quran.waqiah = Boolean(e.target.checked);
+          saveCurrentLog(cur);
+          updateSummaryMetrics();
+        });
+
+        document.getElementById("quranPortionDoneCheckbox").addEventListener("change", (e) => {
+          const cur = getCurrentLog();
+          cur.quran.portionDone = Boolean(e.target.checked);
+          saveCurrentLog(cur);
+          updateSummaryMetrics();
+        });
+
+        document.getElementById("fridayKahfCheckbox").addEventListener("change", (e) => {
+          const cur = getCurrentLog();
+          cur.friday.kahf = Boolean(e.target.checked);
+          saveCurrentLog(cur);
+          updateSummaryMetrics();
+        });
+
+        document.getElementById("fridayNailCheckbox").addEventListener("change", (e) => {
+          const cur = getCurrentLog();
+          cur.friday.nail = Boolean(e.target.checked);
+          saveCurrentLog(cur);
+          updateSummaryMetrics();
+        });
+
+        document.getElementById("toggleFridayPreviewBtn").addEventListener("click", () => {
+          state.fridayPreviewOnNonFriday = !state.fridayPreviewOnNonFriday;
+          syncTrackerControlsFromLog();
+        });
+
+        document.getElementById("clearMobileUsageBtn").addEventListener("click", () => {
+          const cur = getCurrentLog();
+          cur.mobileUsage = "";
+          saveCurrentLog(cur);
+          renderTimeSelectors();
+        });
+
+        document.getElementById("clearReadingTimeBtn").addEventListener("click", () => {
+          const cur = getCurrentLog();
+          cur.readingTime = "";
+          saveCurrentLog(cur);
+          renderTimeSelectors();
+        });
+
+        document.getElementById("ustadAccessToggle").addEventListener("change", (e) => {
+          state.settings.allowUstadView = Boolean(e.target.checked);
+          writeJSON(STORAGE_KEYS.SETTINGS, state.settings);
+          document.getElementById("ustadAccessStatusLabel").textContent =
+            state.settings.allowUstadView ? "ഓൺ" : "ഓഫ്";
+          showToast(state.settings.allowUstadView ? "ഉസ്താദ് ആക്‌സസ് ഓൺ ആക്കി" : "ഉസ്താദ് ആക്‌സസ് ഓഫ് ആക്കി");
+        });
+
+        document.getElementById("exitSpecialModeBtn").addEventListener("click", () => {
+          setActiveMode("student");
+          syncTrackerControlsFromLog();
+        });
+
+        document.getElementById("ustadBackToTrackerBtn").addEventListener("click", () => {
+          setActiveMode("student");
+          syncTrackerControlsFromLog();
+        });
+
+        document.getElementById("adminMadrasaForm").addEventListener("submit", (e) => {
+          e.preventDefault();
+          const mName = document.getElementById("adminMadrasaName").value.trim();
+          const mCode = normalizeCode(document.getElementById("adminMadrasaCode").value);
+          if (!mName || !mCode) return;
+
+          const existingIdx = state.madrasas.findIndex((m) => normalizeCode(m.code) === mCode);
+          if (existingIdx >= 0) {
+            state.madrasas[existingIdx].name = mName;
+            state.madrasas[existingIdx].code = mCode;
+          } else {
+            state.madrasas.push({
+              id: `md-${Date.now()}`,
+              name: mName,
+              code: mCode,
+            });
+          }
+          writeJSON(STORAGE_KEYS.MADRASAS, state.madrasas);
+          document.getElementById("adminMadrasaName").value = "";
+          document.getElementById("adminMadrasaCode").value = "";
+          renderAdminMode();
+          renderMonthlyPointsAndLeaderboards();
+          showToast(`${mName} (${mCode}) സേവ് ചെയ്തു`);
+        });
+
+        document.getElementById("adminStudentForm").addEventListener("submit", (e) => {
+          e.preventDefault();
+          const stName = document.getElementById("adminStudentName").value.trim();
+          const stMadrasa = normalizeCode(document.getElementById("adminStudentMadrasa").value);
+          const stClass = document.getElementById("adminStudentClass").value.trim() || "5-ാം ക്ലാസ്";
+          if (!stName || !stMadrasa) return;
+
+          state.students.push({
+            id: `st-${Date.now()}`,
+            name: stName,
+            madrasaCode: stMadrasa,
+            className: stClass,
+          });
+          writeJSON(STORAGE_KEYS.STUDENTS, state.students);
+          document.getElementById("adminStudentName").value = "";
+          renderAdminMode();
+          renderMonthlyPointsAndLeaderboards();
+          showToast(`${stName} ചേർത്തു`);
+        });
+      }
+
+      function init() {
+        try {
+          seedInitialDataIfEmpty();
+          state.madrasas = readJSON(STORAGE_KEYS.MADRASAS, []);
+          state.students = readJSON(STORAGE_KEYS.STUDENTS, []);
+          state.logs = readJSON(STORAGE_KEYS.LOGS, {});
+          state.settings = readJSON(STORAGE_KEYS.SETTINGS, { allowUstadView: true });
+
+          const savedSession = readJSON(STORAGE_KEYS.SESSION, null);
+          if (savedSession && typeof savedSession === "object") {
+            if (savedSession.selectedDate) state.selectedDate = savedSession.selectedDate;
+            if (savedSession.studentName) {
+              state.studentName = savedSession.studentName;
+              const nameInput = document.getElementById("accessEntryInput");
+              if (nameInput) nameInput.value = savedSession.studentName;
+            }
+            if (savedSession.studentClass) state.studentClass = savedSession.studentClass;
+            if (savedSession.studentMadrasaCode) {
+              state.studentMadrasaCode = normalizeCode(savedSession.studentMadrasaCode);
+            }
+            if (savedSession.activeGroupKey) state.activeGroupKey = savedSession.activeGroupKey;
+          }
+
+          bindEvents();
+          renderMadrasaAndClassDropdowns();
+          updateDateHeaderUI();
+          setActiveMode("student");
+          setActiveScreen("entry");
+          syncTrackerControlsFromLog();
+          renderMultiChildSelectorBar();
+        } catch (err) {
+          console.error("Daily Track init error:", err);
+          showToast("ആപ്പ് ലോഡ് ചെയ്യുന്നതിൽ പിശക് സംഭവിച്ചു.");
+        }
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+      } else {
+        init();
+      }
+    })();
+  </script>
+</body>
+</html>
+```
