@@ -7,7 +7,7 @@
      1. CONFIG & CONSTANTS
      ===================================================================== */
   const CFG = {
-    DB: "https://cv-daily-track-default-rtdb.firebaseio.com",
+    DB: "https://cv-daily-track-default-rtdb.asia-southeast1.firebasedatabase.app",
     ROOT: "madrasa-v2", // new namespace (old single-blob data under /cv-daily-track is left untouched)
     ADMIN_HASH: 8032031086151853, // cyrb53("cv313") — the code itself is not stored in plain text
     IDB: "madrasa-tracker",
