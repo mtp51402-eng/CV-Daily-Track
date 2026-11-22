@@ -29,6 +29,7 @@
     { id: "zuhur_after", label: "ളുഹ്ർ ശേഷം (സുന്നത്ത്)", choices: [0, 2, 4] },
     { id: "asr_before", label: "അസ്വർ മുമ്പ് (സുന്നത്ത്)", choices: [0, 2, 4] },
     { id: "maghrib_after", label: "മഗ്രിബ് ശേഷം (സുന്നത്ത്)", choices: [0, 2] },
+    { id: "isha_before", label: "ഇശാ മുമ്പ് (സുന്നത്ത്)", choices: [0, 2] },
     { id: "isha_after", label: "ഇശാ ശേഷം (സുന്നത്ത്)", choices: [0, 2] }
   ];
 
@@ -302,7 +303,7 @@
       date,
       exemption: { pattilla: false, poornamayum: false, perPrayer: per },
       fardh: { subh: "none", zuhur: "none", asr: "none", maghrib: "none", isha: "none" },
-      sunnah: { witr: false, duha: false, tahajjud: false, rawatib: { subh_before: 0, zuhur_before: 0, zuhur_after: 0, asr_before: 0, maghrib_after: 0, isha_after: 0 } },
+      sunnah: { witr: false, duha: false, tahajjud: false, rawatib: { subh_before: 0, zuhur_before: 0, zuhur_after: 0, asr_before: 0, maghrib_after: 0, isha_before: 0, isha_after: 0 } },
       dhikr: { haddad: false, istighfar100: false, salawat100: false },
       quran: { classDone: false, surahMulk: false, surahWaqiah: false },
       friday: { kahf: false, salawat: false, nails: false },
@@ -408,6 +409,7 @@
   let syncing = false;
   let syncTimer = null;
   let syncState = "idle"; // idle | busy | ok | err
+  let syncErr = "";
 
   const online = () => navigator.onLine !== false;
   const pendingCount = () => Object.keys(state.dirty).length;
@@ -504,19 +506,15 @@
     syncState = "busy";
     updateStrip();
     let changed = false;
-    try {
-      changed = await pull();
-      await push();
-      state.lastSync = Date.now();
-      syncState = "ok";
-      validateSession();
-    } catch (e) {
-      syncState = "err";
-    } finally {
-      syncing = false;
-      persist();
-      updateStrip();
-    }
+    syncErr = "";
+    // Push first (so local work is never blocked by a failing read), then pull.
+    try { await push(); } catch (e) { syncErr = String((e && e.message) || e); }
+    try { changed = await pull(); } catch (e) { syncErr = syncErr || String((e && e.message) || e); }
+    if (syncErr) syncState = "err";
+    else { state.lastSync = Date.now(); syncState = "ok"; validateSession(); }
+    syncing = false;
+    persist();
+    updateStrip();
     if (changed && syncState === "ok" && !modal) render();
     return syncState;
   }
@@ -580,7 +578,7 @@
     let cls = "dot", t;
     if (!online()) { cls += " off"; t = "ഓഫ്‌ലൈൻ" + (n ? " • " + n + " മാറ്റം അയക്കാനുണ്ട്" : " • ഫോണിൽ സേവ് ആകുന്നു"); }
     else if (syncState === "busy") { cls += " busy"; t = "സിങ്ക് ചെയ്യുന്നു…"; }
-    else if (syncState === "err") { cls += " err"; t = "സെർവർ ലഭ്യമല്ല" + (n ? " • " + n + " മാറ്റം പിന്നീട് അയക്കും" : ""); }
+    else if (syncState === "err") { cls += " err"; t = "സെർവർ ലഭ്യമല്ല (" + syncErr + ")" + (n ? " • " + n + " മാറ്റം പിന്നീട് അയക്കും" : ""); }
     else if (n) { t = "ഓൺലൈൻ • " + n + " മാറ്റം അയക്കാനുണ്ട്"; }
     else { t = "ഓൺലൈൻ • സിങ്ക് പൂർത്തിയായി"; }
     dot.className = cls;
@@ -597,6 +595,10 @@
   /* =====================================================================
      7. VIEWS
      ===================================================================== */
+  function quoteCard() {
+    return '<section class="quote" lang="ar"><div class="ar" dir="rtl">قُلِ الْحَقَّ وَإِنْ كَانَ مُرًّا</div><div class="ml" lang="ml">"അത് എത്ര തന്നെ കൈപ്പുള്ളതാണെങ്കിലും നീ സത്യം പറയുക." <span>(നബി വചനം)</span></div></section>';
+  }
+
   function render() {
     const app = $("#app");
     const y = window.scrollY;
@@ -605,11 +607,11 @@
     document.body.classList.toggle("no-nav", !s);
     if (!s) {
       nav.hidden = true;
-      app.innerHTML = loginView();
+      app.innerHTML = quoteCard() + loginView();
     } else {
       renderNav();
       const tab = state.ui.tab;
-      let html = sessionCard();
+      let html = (s.role === "student" ? quoteCard() : "") + sessionCard();
       if (s.role === "student") html += tab === "rank" ? rankView() : trackerView();
       else if (tab === "students") html += studentsView();
       else if (tab === "ustads" && s.role === "admin") html += ustadsView();
@@ -752,7 +754,7 @@
         const cur = e.fardh[p.id] || "none";
         const b = (st, label, extra) => '<button type="button" class="choice ' + (extra || "") + (!exm && cur === st ? " on" : "") + '" data-act="fardh" data-p="' + p.id + '" data-s="' + st + '"' + (exm ? " disabled" : "") + ">" + label + "</button>";
         return '<div class="sub stack" style="gap:10px"><div class="row between"><b style="font-size:.9rem">' + p.label + "</b>" + (exm ? '<span class="pill">ഇളവ്</span>' : "") + "</div>" +
-          '<div class="status-grid">' + b("qada", "കളാഹ്", "qada") + b("missed", "നിസ്കരിച്ചിട്ടില്ല", "miss") + b("prayed", "നിസ്കരിച്ചു") + b("jamaah", "ജമാഅത്ത്") + "</div></div>";
+          '<div class="status-grid">' + b("qada", "ഖളാഅ്", "qada") + b("missed", "നിസ്കരിച്ചിട്ടില്ല", "miss") + b("prayed", "നിസ്കരിച്ചു") + b("jamaah", "ജമാഅത്ത്") + "</div></div>";
       }).join("") + "</section>";
 
       // Sunnah
@@ -1002,7 +1004,7 @@
       el.disabled = true;
       const r = await sync(true);
       el.disabled = false;
-      showToast(r === "ok" ? "ഇന്നത്തെ രേഖ സേവ് ചെയ്തു." : "ഫോണിൽ സേവ് ചെയ്തു. സെർവർ ലഭ്യമാകുമ്പോൾ അയയ്ക്കും.", r !== "ok");
+      showToast(r === "ok" ? "ഇന്നത്തെ രേഖ സേവ് ചെയ്തു." : "ഫോണിൽ സേവ് ചെയ്തു. സെർവർ പിശക്: " + syncErr, r !== "ok");
       render();
     },
 
