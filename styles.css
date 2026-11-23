@@ -262,3 +262,9 @@ body.no-nav .toast { bottom: 24px; }
 .quote .ar { font-family: "Noto Naskh Arabic", "Amiri", "Scheherazade New", "Traditional Arabic", "Geeza Pro", serif; font-size: 1.55rem; line-height: 1.9; color: #fde68a; }
 .quote .ml { margin-top: 4px; font-size: .84rem; font-weight: 600; color: #d1fae5; }
 .quote .ml span { opacity: .8; font-size: .74rem; }
+
+.notice { padding: 14px 16px; border-radius: var(--radius); background: linear-gradient(135deg, #fffbeb, #fef3c7); border: 1.5px solid #fcd34d; color: #78350f; }
+.notice .nh { display: flex; justify-content: space-between; gap: 8px; font-weight: 800; font-size: .84rem; color: #92400e; }
+.notice .nh span { font-weight: 700; font-size: .7rem; opacity: .8; }
+.notice .nt { margin-top: 6px; font-size: .92rem; font-weight: 600; white-space: pre-wrap; word-break: break-word; line-height: 1.6; }
+.sheet p { white-space: pre-wrap; word-break: break-word; }

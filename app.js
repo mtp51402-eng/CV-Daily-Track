@@ -244,6 +244,37 @@
   const liveMadrasas = () => Object.values(state.madrasas).filter((m) => !m.deleted).sort((a, b) => a.name.localeCompare(b.name, "ml"));
   const getMadrasa = (id) => state.madrasas[id] || null;
   const liveMadrasa = (id) => { const m = state.madrasas[id]; return m && !m.deleted ? m : null; };
+  // Per-madrasa tracker setup by the ustad: hide built-in sections, add own tick items
+  const SECS = { dhikr: "ദിക്ർ & ഔറാദ്", quran: "ഖുർആൻ & സൂറത്തുകൾ", habits: "ദൈനംദിന ശീലങ്ങൾ" };
+  // Notice from the ustad to every student of the madrasa
+  const noticeOf = (mid) => { const m = mid ? liveMadrasa(mid) : null; return m && m.notice && m.notice.text ? m.notice : null; };
+  function noticeBanner(mid) {
+    const n = noticeOf(mid); if (!n) return "";
+    return '<section class="notice"><div class="nh">📢 അറിയിപ്പ്' + (n.by ? " • " + esc(n.by) : "") + (n.at ? '<span>' + esc(fmtDateShort(todayIsoOf(n.at))) + "</span>" : "") + '</div><div class="nt">' + esc(n.text) + "</div></section>";
+  }
+  const todayIsoOf = (ts) => { const d = new Date(ts); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); };
+  function noticeComposer(mid) {
+    const n = noticeOf(mid);
+    return '<section class="card stack"><div><h3>📢 വിദ്യാർത്ഥികൾക്ക് അറിയിപ്പ്</h3><p class="muted">ഇവിടെ എഴുതി അയച്ചാൽ ഈ മദ്രസയിലെ എല്ലാ കുട്ടികൾക്കും അടുത്ത തവണ ആപ്പ് തുറക്കുമ്പോൾ ഒരു അറിയിപ്പായി കാണും.</p></div>' +
+      (n ? '<div class="notice"><div class="nh">നിലവിലെ അറിയിപ്പ്<span>' + esc(fmtDateShort(todayIsoOf(n.at))) + '</span></div><div class="nt">' + esc(n.text) + "</div></div>" : "") +
+      '<textarea id="ntText" class="input" rows="3" maxlength="500" placeholder="അറിയിപ്പ് / നിർദ്ദേശം ടൈപ്പ് ചെയ്യുക…">' + "</textarea>" +
+      '<div class="grid2 keep"><button type="button" class="btn" data-act="send-notice">അയയ്ക്കുക</button>' + (n ? '<button type="button" class="btn ghost" data-act="clear-notice">അറിയിപ്പ് നീക്കുക</button>' : "") + "</div></section>";
+  }
+  function maybeShowNotice() {
+    const s = state.session;
+    if (!s || s.role !== "student" || modal) return;
+    const n = noticeOf(s.mid); if (!n) return;
+    if (!state.seen) state.seen = {};
+    if (state.seen[s.mid] === n.id) return;
+    state.seen[s.mid] = n.id; persist();
+    openModal({ title: "📢 അറിയിപ്പ്" + (n.by ? " — " + n.by : ""), text: n.text, ok: "ശരി", focus: false, onOk() {} });
+  }
+  function mcfg(mid) {
+    const m = mid ? liveMadrasa(mid) : null;
+    const hide = (m && m.hide) || {};
+    const customs = m && m.custom ? Object.values(m.custom).filter((c) => c && !c.deleted).sort((a, b) => (a.order || 0) - (b.order || 0)) : [];
+    return { hide, customs };
+  }
   const liveUstads = () => Object.values(state.ustads).filter((u) => !u.deleted && liveMadrasa(u.mid));
   const studentsOf = (mid) => Object.values(state.students[mid] || {}).filter((s) => !s.deleted);
 
@@ -339,8 +370,10 @@
     return out;
   }
 
-  function calc(entry) {
+  function calc(entry, mid) {
     if (!entry) return 0;
+    const cf = mcfg(mid), ec = entry.custom || {};
+    const cpts = (sec) => cf.customs.reduce((a, c) => a + (c.sec === sec && ec[c.id] === true ? (Number(c.points) || 0) : 0), 0);
     let t = 0;
     const ex = entry.exemption || {};
     const full = !!(ex.pattilla && ex.poornamayum);
@@ -360,9 +393,12 @@
         if (n > 0 && n !== 1 && n !== 3) t += (n / 2) * W.rawatibPerTwo;
       });
       const q = entry.quran || {};
-      if (q.classDone) t += W.quranClassDone;
-      if (q.surahMulk) t += W.surahMulk;
-      if (q.surahWaqiah) t += W.surahWaqiah;
+      if (!cf.hide.quran) {
+        if (q.classDone) t += W.quranClassDone;
+        if (q.surahMulk) t += W.surahMulk;
+        if (q.surahWaqiah) t += W.surahWaqiah;
+      }
+      t += cpts("quran");
       if (isFriday(entry.date)) {
         const f = entry.friday || {};
         if (f.kahf) t += W.fridayKahf;
@@ -371,19 +407,23 @@
       }
     }
     const d = entry.dhikr || {};
-    if (d.haddad) t += W.haddad;
-    if (d.istighfar100) t += W.istighfar100;
-    if (d.salawat100) t += W.salawat100;
+    if (!cf.hide.dhikr) {
+      if (d.haddad) t += W.haddad;
+      if (d.istighfar100) t += W.istighfar100;
+      if (d.salawat100) t += W.salawat100;
+    }
+    t += cpts("dhikr");
     const h = entry.habits || {};
-    t += (W.mobile[h.mobileUsage] || 0) + (W.book[Number(h.bookReading)] || 0);
+    if (!cf.hide.habits) t += (W.mobile[h.mobileUsage] || 0) + (W.book[Number(h.bookReading)] || 0);
+    t += cpts("habits");
     return t;
   }
 
-  function dayScore(mid, sid, date) { return calc(recordOf(mid, sid, date)); }
+  function dayScore(mid, sid, date) { return calc(recordOf(mid, sid, date), mid); }
   function monthScore(mid, sid, month) {
     const by = (state.records[mid] && state.records[mid][sid]) || {};
     let t = 0;
-    for (const d in by) if (d.slice(0, 7) === month) t += calc(by[d]);
+    for (const d in by) if (d.slice(0, 7) === month) t += calc(by[d], mid);
     return t;
   }
 
@@ -611,17 +651,18 @@
     } else {
       renderNav();
       const tab = state.ui.tab;
-      let html = (s.role === "student" ? quoteCard() : "") + sessionCard();
+      let html = (s.role === "student" ? quoteCard() : "") + sessionCard() + (s.role === "student" ? noticeBanner(s.mid) : "");
       if (s.role === "student") html += tab === "rank" ? rankView() : trackerView();
       else if (tab === "students") html += studentsView();
       else if (tab === "ustads" && s.role === "admin") html += ustadsView();
       else if (tab === "madrasas" && s.role === "admin") html += madrasasView();
       else if (tab === "settings" && s.role === "ustad") html += settingsView();
-      else html += rankView();
+      else html += (s.role === "ustad" ? noticeComposer(s.mid) : "") + rankView();
       app.innerHTML = html;
     }
     window.scrollTo(0, y);
     updateStrip();
+    maybeShowNotice();
   }
 
   function navItems() {
@@ -728,7 +769,9 @@
     const full = pat && !!ex.poornamayum;
     const exSet = full ? new Set(PRAYERS.map((p) => p.id)) : rangeExempt(e);
     const fri = isFriday(date);
-    const score = calc(e);
+    const score = calc(e, state.session.mid);
+    const cf = mcfg(state.session.mid);
+    const cTicks = (sec) => cf.customs.filter((c) => c.sec === sec).map((c) => chk("custom." + c.id, esc(c.label), !!(e.custom && e.custom[c.id]))).join("");
 
     let h = '<section class="total"><div><div class="lbl">' + (date === todayIso() ? "ഇന്നത്തെ പോയിന്റ്" : "ഈ ദിവസത്തെ പോയിന്റ്") + '</div><div class="num">' + score + '</div><div class="lbl" style="margin-top:4px">' + esc(fmtDate(date)) + '</div></div>' +
       '<input type="date" data-ui="date" value="' + date + '" max="' + todayIso() + '" aria-label="തീയതി"></section>';
@@ -768,15 +811,17 @@
     }
 
     // Dhikr
-    h += '<section class="card stack"><h2>ദിക്ർ &amp; ഔറാദ്</h2><div class="grid2 keep" style="grid-template-columns:1fr">' +
-      chk("dhikr.haddad", "ഹദ്ദാദ്", e.dhikr.haddad) + chk("dhikr.istighfar100", "ഇസ്തിഗ്ഫാർ 100", e.dhikr.istighfar100) + chk("dhikr.salawat100", "സ്വലാത്ത് 100", e.dhikr.salawat100) + "</div></section>";
+    {
+      const body = (cf.hide.dhikr ? "" : chk("dhikr.haddad", "ഹദ്ദാദ്", e.dhikr.haddad) + chk("dhikr.istighfar100", "ഇസ്തിഗ്ഫാർ 100", e.dhikr.istighfar100) + chk("dhikr.salawat100", "സ്വലാത്ത് 100", e.dhikr.salawat100)) + cTicks("dhikr");
+      if (body) h += '<section class="card stack"><h2>ദിക്ർ &amp; ഔറാദ്</h2><div class="grid2 keep" style="grid-template-columns:1fr">' + body + "</div></section>";
+    }
 
     // Quran — tick only
     if (!full) {
-      h += '<section class="card stack"><h2>ഖുർആൻ &amp; സൂറത്തുകൾ</h2>' +
-        chk("quran.classDone", "ഖുർആൻ — ഇന്ന് ക്ലാസിൽ എടുത്ത ഭാഗം", e.quran.classDone) +
+      const body = (cf.hide.quran ? "" : chk("quran.classDone", "ഖുർആൻ — ഇന്ന് ക്ലാസിൽ എടുത്ത ഭാഗം", e.quran.classDone) +
         chk("quran.surahMulk", "സൂറത്തുൽ മുൽക്ക്", e.quran.surahMulk) +
-        chk("quran.surahWaqiah", "സൂറത്തുൽ വാഖിയ", e.quran.surahWaqiah) + "</section>";
+        chk("quran.surahWaqiah", "സൂറത്തുൽ വാഖിയ", e.quran.surahWaqiah)) + cTicks("quran");
+      if (body) h += '<section class="card stack"><h2>ഖുർആൻ &amp; സൂറത്തുകൾ</h2>' + body + "</section>";
     }
 
     // Friday (only on Fridays)
@@ -789,11 +834,12 @@
 
     // Habits
     const mo = e.habits.mobileUsage, bk = Number(e.habits.bookReading) || 0;
-    h += '<section class="card"><h2 style="margin-bottom:12px">ദൈനംദിന ശീലങ്ങൾ</h2><div class="grid2">' +
+    const habBuiltin = cf.hide.habits ? "" : '<div class="grid2">' +
       '<label class="sub field">മൊബൈൽ ഉപയോഗം<select class="select sm" data-ep="habits.mobileUsage">' +
       [["none", "ഉപയോഗിച്ചിട്ടില്ല"], ["under30", "30 മിനിറ്റിൽ താഴെ"], ["30to60", "30 - 60 മിനിറ്റ്"], ["over60", "1 മണിക്കൂറിൽ കൂടുതൽ"]].map((o) => '<option value="' + o[0] + '"' + (mo === o[0] ? " selected" : "") + ">" + o[1] + "</option>").join("") + "</select></label>" +
       '<label class="sub field">പുസ്തകം വായിച്ച സമയം<select class="select sm" data-ep="habits.bookReading" data-num="1">' +
-      [[0, "വായിച്ചില്ല"], [15, "15 മിനിറ്റ്"], [30, "30 മിനിറ്റ്"], [45, "45+ മിനിറ്റ്"]].map((o) => '<option value="' + o[0] + '"' + (bk === o[0] ? " selected" : "") + ">" + o[1] + "</option>").join("") + "</select></label></div></section>";
+      [[0, "വായിച്ചില്ല"], [15, "15 മിനിറ്റ്"], [30, "30 മിനിറ്റ്"], [45, "45+ മിനിറ്റ്"]].map((o) => '<option value="' + o[0] + '"' + (bk === o[0] ? " selected" : "") + ">" + o[1] + "</option>").join("") + "</select></label></div>";
+    if (habBuiltin || cTicks("habits")) h += '<section class="card stack"><h2>ദൈനംദിന ശീലങ്ങൾ</h2>' + habBuiltin + cTicks("habits") + "</section>";
 
     h += '<section class="card stack"><button type="button" class="btn block" data-act="save">' + ICON.download.replace("M12 3v12M7 10l5 5 5-5M5 21h14", "M5 12l5 5 9-10") + "ഇന്നത്തെ രേഖ സേവ് ചെയ്യുക</button>" +
       '<p class="muted" style="text-align:center">മാറ്റങ്ങൾ ഓരോന്നും ഫോണിൽ ഉടൻ സേവ് ആകും. ഇന്റർനെറ്റ് കിട്ടുമ്പോൾ സ്വയം അയയ്ക്കും.</p></section>';
@@ -959,11 +1005,24 @@
   }
 
   /* ---------- Ustad: own madrasa settings ---------- */
+  function trackerSetupCard(m) {
+    const hide = m.hide || {}, cf = mcfg(m.id);
+    return '<section class="card stack"><div><h3>വിദ്യാർത്ഥികളുടെ ട്രാക്കർ ക്രമീകരണം</h3><p class="muted">ഈ മദ്രസയിലെ കുട്ടികൾക്ക് കാണിക്കേണ്ട ഭാഗങ്ങൾ തിരഞ്ഞെടുക്കുക. ഒഴിവാക്കിയ ഭാഗത്തെ പോയിന്റ് കണക്കിൽ ചേർക്കില്ല.</p></div>' +
+      Object.keys(SECS).map((k) => '<label class="switch"><span><b style="font-size:.88rem">' + SECS[k] + '</b><br><span class="muted">' + (hide[k] ? "ഒഴിവാക്കി" : "കാണിക്കുന്നു") + '</span></span><input type="checkbox" data-hide="' + k + '"' + (hide[k] ? "" : " checked") + "></label>").join("") +
+      '<div class="card-head" style="margin:6px 0 0"><h3>സ്വന്തം ഇനങ്ങൾ ചേർക്കുക</h3></div>' +
+      '<select id="cuSec" class="select">' + Object.keys(SECS).map((k) => '<option value="' + k + '">' + SECS[k] + "</option>").join("") + '</select>' +
+      '<input id="cuLabel" class="input" type="text" placeholder="ഇനത്തിന്റെ പേര് (ഉദാ: സൂറത്തുൽ കഹ്ഫ്)" autocomplete="off">' +
+      '<label class="sub field">പോയിന്റ്<select id="cuPts" class="select sm">' + [5, 10, 15, 20, 25, 30].map((n) => '<option value="' + n + '"' + (n === 10 ? " selected" : "") + ">" + n + "</option>").join("") + "</select></label>" +
+      '<button type="button" class="btn block" data-act="add-custom">' + ICON.plus + "ഇനം ചേർക്കുക</button>" +
+      (cf.customs.length ? cf.customs.map((c) => '<div class="row between" style="gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px"><div style="min-width:0"><div style="font-weight:800;font-size:.86rem">' + esc(c.label) + '</div><div class="muted">' + esc(SECS[c.sec] || "") + " • " + (Number(c.points) || 0) + ' പോയിന്റ്</div></div><button type="button" class="icon-btn" data-act="del-custom" data-id="' + esc(c.id) + '" aria-label="നീക്കുക">' + ICON.trash + "</button></div>").join("") : '<div class="muted">സ്വന്തം ഇനങ്ങൾ ഇല്ല.</div>') +
+      "</section>";
+  }
   function settingsView() {
     const m = liveMadrasa(state.session.mid);
     if (!m) return '<section class="card empty">മദ്രസ കണ്ടെത്താൻ കഴിഞ്ഞില്ല.</section>';
     return '<section class="card stack"><div class="card-head" style="margin:0"><div><h3>എന്റെ മദ്രസ കോഡ്</h3><p class="muted">നിങ്ങളുടെ മദ്രസയുടെ കോഡ് മാത്രമേ ഇവിടെ കാണാനും മാറ്റാനും സാധിക്കൂ.</p></div></div>' +
       '<div class="sub" style="font-weight:800">' + esc(m.name) + '</div><input id="ownCode" class="input" type="text" value="' + esc(m.code) + '" placeholder="മദ്രസ കോഡ്" autocomplete="off"><button type="button" class="btn block" data-act="save-own-code">മദ്രസ കോഡ് സേവ് ചെയ്യുക</button></section>' +
+      trackerSetupCard(m) +
       '<section class="card"><label class="switch"><span><b style="font-size:.88rem">കോഡ് ഉപയോഗിച്ച് കുട്ടികൾക്ക് സ്വയം ചേരാം</b><br><span class="muted">ഓഫ് ചെയ്താൽ നിങ്ങൾ ചേർത്ത വിദ്യാർത്ഥികൾക്ക് മാത്രം പ്രവേശിക്കാം.</span></span><input type="checkbox" id="openJoin" data-join="' + esc(m.id) + '"' + (m.openJoin === false ? "" : " checked") + "></label></section>";
   }
 
@@ -1125,6 +1184,37 @@
       });
     },
 
+    "send-notice"() {
+      if (state.session.role !== "ustad") return;
+      const m = liveMadrasa(state.session.mid); if (!m) return;
+      const t = String($("#ntText").value || "").replace(/\r/g, "").trim();
+      if (!t) return showToast("അറിയിപ്പ് ടൈപ്പ് ചെയ്യുക.", true);
+      m.notice = { id: uid("n"), text: t.slice(0, 500), at: Date.now(), by: state.session.name };
+      saveMadrasa(m); showToast("അറിയിപ്പ് അയച്ചു. കുട്ടികൾക്ക് ഓൺലൈൻ ആകുമ്പോൾ കിട്ടും."); render();
+    },
+    "clear-notice"() {
+      if (state.session.role !== "ustad") return;
+      const m = liveMadrasa(state.session.mid); if (!m) return;
+      m.notice = null; saveMadrasa(m); showToast("അറിയിപ്പ് നീക്കി."); render();
+    },
+    "add-custom"() {
+      if (state.session.role !== "ustad") return;
+      const m = liveMadrasa(state.session.mid); if (!m) return;
+      const label = cleanName($("#cuLabel").value), sec = $("#cuSec").value, pts = Number($("#cuPts").value) || 10;
+      if (!label) return showToast("ഇനത്തിന്റെ പേര് നൽകുക.", true);
+      if (!SECS[sec]) return;
+      if (mcfg(m.id).customs.some((c) => c.sec === sec && normName(c.label) === normName(label))) return showToast("ഈ ഇനം ഇതിനകം ഉണ്ട്.", true);
+      const id = uid("cu");
+      if (!m.custom) m.custom = {};
+      m.custom[id] = { id, label, sec, points: pts, order: Date.now(), deleted: false };
+      saveMadrasa(m); showToast("ഇനം ചേർത്തു."); render();
+    },
+    "del-custom"(el) {
+      if (state.session.role !== "ustad") return;
+      const m = liveMadrasa(state.session.mid), c = m && m.custom && m.custom[el.dataset.id]; if (!c) return;
+      openModal({ title: "ഇനം നീക്കം ചെയ്യണോ?", text: c.label + " — കുട്ടികളുടെ പഴയ പോയിന്റിൽ നിന്ന് ഇത് ഒഴിവാകും.", ok: "നീക്കം ചെയ്യുക", danger: true, focus: false,
+        onOk() { c.deleted = true; saveMadrasa(m); showToast("നീക്കം ചെയ്തു."); render(); } });
+    },
     "save-own-code"() {
       if (state.session.role !== "ustad") return;
       const m = liveMadrasa(state.session.mid);
@@ -1439,6 +1529,13 @@
         if ((el.dataset.ui === "date" || el.dataset.ui === "lbDate") && (!v || v > todayIso())) v = todayIso();
         state.ui[el.dataset.ui] = v;
         persist(); render();
+        return;
+      }
+      if (el.dataset && el.dataset.hide) {
+        if (state.session && state.session.role === "ustad") {
+          const m = liveMadrasa(state.session.mid);
+          if (m) { m.hide = Object.assign({}, m.hide || {}, { [el.dataset.hide]: !el.checked }); saveMadrasa(m); showToast(el.checked ? "കാണിക്കും." : "ഒഴിവാക്കി."); render(); }
+        }
         return;
       }
       if (el.dataset && el.dataset.join) {
