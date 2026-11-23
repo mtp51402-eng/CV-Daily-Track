@@ -1,6 +1,6 @@
 /* Service worker — offline-first app shell.
    Firebase (data) requests are never cached here; the app keeps its own offline queue. */
-const VERSION = "mt-v1.0.6";
+const VERSION = "mt-v1.0.7";
 const SHELL = [
   "./",
   "./index.html",

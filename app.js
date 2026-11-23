@@ -269,12 +269,36 @@
     state.seen[s.mid] = n.id; persist();
     openModal({ title: "📢 അറിയിപ്പ്" + (n.by ? " — " + n.by : ""), text: n.text, ok: "ശരി", focus: false, onOk() {} });
   }
-  function mcfg(mid) {
+  // Every tick / choice a student can mark. key -> [label, legacySection]
+  const ITEM_GROUPS = [
+    ["ഇളവ്", [["exempt", "നിസ്കാര ഇളവ് / പറ്റില്ല", ""]]],
+    ["ഫർള് നിസ്കാരങ്ങൾ", PRAYERS.map((p) => ["f_" + p.id, p.label, ""])],
+    ["സുന്നത്ത് നിസ്കാരങ്ങൾ", [["witr", "വിത്ർ", ""], ["duha", "ളുഹാ", ""], ["tahajjud", "തഹജ്ജുദ്", ""]].concat(RAWATIB.map((c) => ["r_" + c.id, c.label, ""]))],
+    ["ദിക്ർ & ഔറാദ്", [["haddad", "ഹദ്ദാദ്", "dhikr"], ["istighfar100", "ഇസ്തിഗ്ഫാർ 100", "dhikr"], ["salawat100", "സ്വലാത്ത് 100", "dhikr"]]],
+    ["ഖുർആൻ & സൂറത്തുകൾ", [["classDone", "ഖുർആൻ — ക്ലാസിൽ എടുത്ത ഭാഗം", "quran"], ["surahMulk", "സൂറത്തുൽ മുൽക്ക്", "quran"], ["surahWaqiah", "സൂറത്തുൽ വാഖിയ", "quran"]]],
+    ["വെള്ളിയാഴ്ച", [["kahf", "സൂറത്തുൽ കഹ്ഫ്", ""], ["fsalawat", "പ്രത്യേക സ്വലാത്ത്", ""], ["nails", "നഖം വെട്ടുക", ""]]],
+    ["ദൈനംദിന ശീലങ്ങൾ", [["mobile", "മൊബൈൽ ഉപയോഗം", "habits"], ["book", "പുസ്തകം വായിച്ച സമയം", "habits"]]]
+  ];
+  const LEGACY_SEC = {};
+  ITEM_GROUPS.forEach((g) => g[1].forEach((i) => { LEGACY_SEC[i[0]] = i[2]; }));
+  // Is item visible for this madrasa + class? class rule > "all classes" rule > legacy section flag > visible
+  function isVis(mid, cls, key) {
     const m = mid ? liveMadrasa(mid) : null;
-    const hide = (m && m.hide) || {};
-    const customs = m && m.custom ? Object.values(m.custom).filter((c) => c && !c.deleted).sort((a, b) => (a.order || 0) - (b.order || 0)) : [];
-    return { hide, customs };
+    if (!m) return true;
+    const v = m.vis && m.vis[key];
+    if (v) {
+      if (cls && v[cls] !== undefined) return !!v[cls];
+      if (v["*"] !== undefined) return !!v["*"];
+    }
+    const sec = LEGACY_SEC[key];
+    return !(sec && m.hide && m.hide[sec]);
   }
+  function mcfg(mid, cls) {
+    const m = mid ? liveMadrasa(mid) : null;
+    const customs = m && m.custom ? Object.values(m.custom).filter((c) => c && !c.deleted && (!cls || !c.cls || c.cls === "*" || c.cls === cls)).sort((a, b) => (a.order || 0) - (b.order || 0)) : [];
+    return { customs };
+  }
+  const clsOf = (mid, sid) => { const st = state.students[mid] && state.students[mid][sid]; return st ? st.cls : ""; };
   const liveUstads = () => Object.values(state.ustads).filter((u) => !u.deleted && liveMadrasa(u.mid));
   const studentsOf = (mid) => Object.values(state.students[mid] || {}).filter((s) => !s.deleted);
 
@@ -370,60 +394,59 @@
     return out;
   }
 
-  function calc(entry, mid) {
+  function calc(entry, mid, cls) {
     if (!entry) return 0;
-    const cf = mcfg(mid), ec = entry.custom || {};
+    const iv = (k) => isVis(mid, cls, k);
+    const cf = mcfg(mid, cls), ec = entry.custom || {};
     const cpts = (sec) => cf.customs.reduce((a, c) => a + (c.sec === sec && ec[c.id] === true ? (Number(c.points) || 0) : 0), 0);
     let t = 0;
-    const ex = entry.exemption || {};
+    const exOn = iv("exempt");
+    const ex = exOn ? (entry.exemption || {}) : {};
     const full = !!(ex.pattilla && ex.poornamayum);
-    const exSet = full ? new Set(PRAYERS.map((p) => p.id)) : rangeExempt(entry);
+    const exSet = !exOn ? new Set() : full ? new Set(PRAYERS.map((p) => p.id)) : rangeExempt(entry);
     if (!full) {
       PRAYERS.forEach((p) => {
-        if (exSet.has(p.id)) return;
+        if (exSet.has(p.id) || !iv("f_" + p.id)) return;
         const st = (entry.fardh && entry.fardh[p.id]) || "none";
         if (st === "jamaah") t += W.jamaah; else if (st === "prayed") t += W.prayed; else if (st === "qada") t += W.qada;
       });
       const su = entry.sunnah || {};
-      if (su.witr) t += W.witr;
-      if (su.duha) t += W.duha;
-      if (su.tahajjud) t += W.tahajjud;
-      Object.values(su.rawatib || {}).forEach((r) => {
-        const n = Number(r) || 0;
-        if (n > 0 && n !== 1 && n !== 3) t += (n / 2) * W.rawatibPerTwo;
+      if (su.witr && iv("witr")) t += W.witr;
+      if (su.duha && iv("duha")) t += W.duha;
+      if (su.tahajjud && iv("tahajjud")) t += W.tahajjud;
+      Object.keys(su.rawatib || {}).forEach((k) => {
+        const n = Number(su.rawatib[k]) || 0;
+        if (iv("r_" + k) && n > 0 && n !== 1 && n !== 3) t += (n / 2) * W.rawatibPerTwo;
       });
       const q = entry.quran || {};
-      if (!cf.hide.quran) {
-        if (q.classDone) t += W.quranClassDone;
-        if (q.surahMulk) t += W.surahMulk;
-        if (q.surahWaqiah) t += W.surahWaqiah;
-      }
+      if (q.classDone && iv("classDone")) t += W.quranClassDone;
+      if (q.surahMulk && iv("surahMulk")) t += W.surahMulk;
+      if (q.surahWaqiah && iv("surahWaqiah")) t += W.surahWaqiah;
       t += cpts("quran");
       if (isFriday(entry.date)) {
         const f = entry.friday || {};
-        if (f.kahf) t += W.fridayKahf;
-        if (f.salawat) t += W.fridaySalawat;
-        if (f.nails) t += W.fridayNails;
+        if (f.kahf && iv("kahf")) t += W.fridayKahf;
+        if (f.salawat && iv("fsalawat")) t += W.fridaySalawat;
+        if (f.nails && iv("nails")) t += W.fridayNails;
       }
     }
     const d = entry.dhikr || {};
-    if (!cf.hide.dhikr) {
-      if (d.haddad) t += W.haddad;
-      if (d.istighfar100) t += W.istighfar100;
-      if (d.salawat100) t += W.salawat100;
-    }
+    if (d.haddad && iv("haddad")) t += W.haddad;
+    if (d.istighfar100 && iv("istighfar100")) t += W.istighfar100;
+    if (d.salawat100 && iv("salawat100")) t += W.salawat100;
     t += cpts("dhikr");
     const h = entry.habits || {};
-    if (!cf.hide.habits) t += (W.mobile[h.mobileUsage] || 0) + (W.book[Number(h.bookReading)] || 0);
+    if (iv("mobile")) t += W.mobile[h.mobileUsage] || 0;
+    if (iv("book")) t += W.book[Number(h.bookReading)] || 0;
     t += cpts("habits");
     return t;
   }
 
-  function dayScore(mid, sid, date) { return calc(recordOf(mid, sid, date), mid); }
+  function dayScore(mid, sid, date) { return calc(recordOf(mid, sid, date), mid, clsOf(mid, sid)); }
   function monthScore(mid, sid, month) {
     const by = (state.records[mid] && state.records[mid][sid]) || {};
     let t = 0;
-    for (const d in by) if (d.slice(0, 7) === month) t += calc(by[d], mid);
+    for (const d in by) if (d.slice(0, 7) === month) t += calc(by[d], mid, clsOf(mid, sid));
     return t;
   }
 
@@ -763,36 +786,42 @@
 
   function trackerView() {
     const date = state.ui.date;
+    const mid = state.session.mid, cls = state.session.cls;
+    const iv = (k) => isVis(mid, cls, k);
     const e = currentEntry(false);
+    const exOn = iv("exempt");
     const ex = e.exemption;
-    const pat = !!ex.pattilla;
+    const pat = exOn && !!ex.pattilla;
     const full = pat && !!ex.poornamayum;
-    const exSet = full ? new Set(PRAYERS.map((p) => p.id)) : rangeExempt(e);
+    const exSet = !exOn ? new Set() : full ? new Set(PRAYERS.map((p) => p.id)) : rangeExempt(e);
     const fri = isFriday(date);
-    const score = calc(e, state.session.mid);
-    const cf = mcfg(state.session.mid);
+    const score = calc(e, mid, cls);
+    const cf = mcfg(mid, cls);
     const cTicks = (sec) => cf.customs.filter((c) => c.sec === sec).map((c) => chk("custom." + c.id, esc(c.label), !!(e.custom && e.custom[c.id]))).join("");
 
     let h = '<section class="total"><div><div class="lbl">' + (date === todayIso() ? "ഇന്നത്തെ പോയിന്റ്" : "ഈ ദിവസത്തെ പോയിന്റ്") + '</div><div class="num">' + score + '</div><div class="lbl" style="margin-top:4px">' + esc(fmtDate(date)) + '</div></div>' +
       '<input type="date" data-ui="date" value="' + date + '" max="' + todayIso() + '" aria-label="തീയതി"></section>';
 
     // Exemption
-    h += '<section class="card stack"><div class="card-head" style="margin:0"><h2>നിസ്കാര ഇളവ് / പറ്റില്ല</h2></div>' +
-      chk("exemption.pattilla", "പറ്റില്ല", pat, "warn");
-    if (pat) {
-      h += chk("exemption.poornamayum", "പൂർണ്ണമായും", full, "amber");
-      h += '<div class="grid2">' + PRAYERS.map((p) => {
-        const f = (ex.perPrayer && ex.perPrayer[p.id]) || {};
-        return '<div class="sub stack" style="gap:8px"><b style="font-size:.84rem">' + p.label + '</b><div class="range-row">' +
-          '<label><input type="checkbox" data-ep="exemption.perPrayer.' + p.id + '.muthal"' + (!full && f.muthal ? " checked" : "") + (full ? " disabled" : "") + '> മുതൽ</label>' +
-          '<label><input type="checkbox" data-ep="exemption.perPrayer.' + p.id + '.vare"' + (!full && f.vare ? " checked" : "") + (full ? " disabled" : "") + '> വരെ</label></div></div>';
-      }).join("") + "</div>";
+    if (exOn) {
+      h += '<section class="card stack"><div class="card-head" style="margin:0"><h2>നിസ്കാര ഇളവ് / പറ്റില്ല</h2></div>' +
+        chk("exemption.pattilla", "പറ്റില്ല", pat, "warn");
+      if (pat) {
+        h += chk("exemption.poornamayum", "പൂർണ്ണമായും", full, "amber");
+        h += '<div class="grid2">' + PRAYERS.map((p) => {
+          const f = (ex.perPrayer && ex.perPrayer[p.id]) || {};
+          return '<div class="sub stack" style="gap:8px"><b style="font-size:.84rem">' + p.label + '</b><div class="range-row">' +
+            '<label><input type="checkbox" data-ep="exemption.perPrayer.' + p.id + '.muthal"' + (!full && f.muthal ? " checked" : "") + (full ? " disabled" : "") + '> മുതൽ</label>' +
+            '<label><input type="checkbox" data-ep="exemption.perPrayer.' + p.id + '.vare"' + (!full && f.vare ? " checked" : "") + (full ? " disabled" : "") + '> വരെ</label></div></div>';
+        }).join("") + "</div>";
+      }
+      h += "</section>";
     }
-    h += "</section>";
 
     if (!full) {
       // Fardh
-      h += '<section class="card stack"><h2>ഫർള് നിസ്കാരങ്ങൾ</h2>' + PRAYERS.map((p) => {
+      const prs = PRAYERS.filter((p) => iv("f_" + p.id));
+      if (prs.length) h += '<section class="card stack"><h2>ഫർള് നിസ്കാരങ്ങൾ</h2>' + prs.map((p) => {
         const exm = exSet.has(p.id);
         const cur = e.fardh[p.id] || "none";
         const b = (st, label, extra) => '<button type="button" class="choice ' + (extra || "") + (!exm && cur === st ? " on" : "") + '" data-act="fardh" data-p="' + p.id + '" data-s="' + st + '"' + (exm ? " disabled" : "") + ">" + label + "</button>";
@@ -801,44 +830,44 @@
       }).join("") + "</section>";
 
       // Sunnah
-      h += '<section class="card stack"><h2>സുന്നത്ത് നിസ്കാരങ്ങൾ</h2><div class="grid3">' +
-        chk("sunnah.witr", "വിത്ർ", e.sunnah.witr, "col") + chk("sunnah.duha", "ളുഹാ", e.sunnah.duha, "col") + chk("sunnah.tahajjud", "തഹജ്ജുദ്", e.sunnah.tahajjud, "col") + "</div>" +
-        '<div class="grid2">' + RAWATIB.map((c) => {
+      const sn = (k, label, path, val) => (iv(k) ? chk(path, label, val, "col") : "");
+      const trio = sn("witr", "വിത്ർ", "sunnah.witr", e.sunnah.witr) + sn("duha", "ളുഹാ", "sunnah.duha", e.sunnah.duha) + sn("tahajjud", "തഹജ്ജുദ്", "sunnah.tahajjud", e.sunnah.tahajjud);
+      const raws = RAWATIB.filter((c) => iv("r_" + c.id));
+      if (trio || raws.length) h += '<section class="card stack"><h2>സുന്നത്ത് നിസ്കാരങ്ങൾ</h2>' + (trio ? '<div class="grid3">' + trio + "</div>" : "") +
+        (raws.length ? '<div class="grid2">' + raws.map((c) => {
           const cur = Number(e.sunnah.rawatib[c.id]) || 0;
           return '<label class="sub field">' + c.label + '<select class="select sm" data-ep="sunnah.rawatib.' + c.id + '" data-num="1">' +
             c.choices.map((v) => '<option value="' + v + '"' + (cur === v ? " selected" : "") + ">" + (v === 0 ? "നിസ്കരിച്ചിട്ടില്ല" : v + " റക്അത്ത്") + "</option>").join("") + "</select></label>";
-        }).join("") + "</div></section>";
+        }).join("") + "</div>" : "") + "</section>";
     }
 
     // Dhikr
     {
-      const body = (cf.hide.dhikr ? "" : chk("dhikr.haddad", "ഹദ്ദാദ്", e.dhikr.haddad) + chk("dhikr.istighfar100", "ഇസ്തിഗ്ഫാർ 100", e.dhikr.istighfar100) + chk("dhikr.salawat100", "സ്വലാത്ത് 100", e.dhikr.salawat100)) + cTicks("dhikr");
+      const body = (iv("haddad") ? chk("dhikr.haddad", "ഹദ്ദാദ്", e.dhikr.haddad) : "") + (iv("istighfar100") ? chk("dhikr.istighfar100", "ഇസ്തിഗ്ഫാർ 100", e.dhikr.istighfar100) : "") + (iv("salawat100") ? chk("dhikr.salawat100", "സ്വലാത്ത് 100", e.dhikr.salawat100) : "") + cTicks("dhikr");
       if (body) h += '<section class="card stack"><h2>ദിക്ർ &amp; ഔറാദ്</h2><div class="grid2 keep" style="grid-template-columns:1fr">' + body + "</div></section>";
     }
 
     // Quran — tick only
     if (!full) {
-      const body = (cf.hide.quran ? "" : chk("quran.classDone", "ഖുർആൻ — ഇന്ന് ക്ലാസിൽ എടുത്ത ഭാഗം", e.quran.classDone) +
-        chk("quran.surahMulk", "സൂറത്തുൽ മുൽക്ക്", e.quran.surahMulk) +
-        chk("quran.surahWaqiah", "സൂറത്തുൽ വാഖിയ", e.quran.surahWaqiah)) + cTicks("quran");
+      const body = (iv("classDone") ? chk("quran.classDone", "ഖുർആൻ — ഇന്ന് ക്ലാസിൽ എടുത്ത ഭാഗം", e.quran.classDone) : "") +
+        (iv("surahMulk") ? chk("quran.surahMulk", "സൂറത്തുൽ മുൽക്ക്", e.quran.surahMulk) : "") +
+        (iv("surahWaqiah") ? chk("quran.surahWaqiah", "സൂറത്തുൽ വാഖിയ", e.quran.surahWaqiah) : "") + cTicks("quran");
       if (body) h += '<section class="card stack"><h2>ഖുർആൻ &amp; സൂറത്തുകൾ</h2>' + body + "</section>";
     }
 
     // Friday (only on Fridays)
     if (fri && !full) {
-      h += '<section class="card stack"><div class="row between"><h2>വെള്ളിയാഴ്ച</h2><span class="role-tag">ജുമുഅ ദിനം</span></div>' +
-        chk("friday.kahf", "സൂറത്തുൽ കഹ്ഫ്", e.friday.kahf) + chk("friday.salawat", "പ്രത്യേക സ്വലാത്ത്", e.friday.salawat) + chk("friday.nails", "നഖം വെട്ടുക", e.friday.nails) + "</section>";
-    } else if (fri && full) {
-      h += "";
+      const body = (iv("kahf") ? chk("friday.kahf", "സൂറത്തുൽ കഹ്ഫ്", e.friday.kahf) : "") + (iv("fsalawat") ? chk("friday.salawat", "പ്രത്യേക സ്വലാത്ത്", e.friday.salawat) : "") + (iv("nails") ? chk("friday.nails", "നഖം വെട്ടുക", e.friday.nails) : "");
+      if (body) h += '<section class="card stack"><div class="row between"><h2>വെള്ളിയാഴ്ച</h2><span class="role-tag">ജുമുഅ ദിനം</span></div>' + body + "</section>";
     }
 
     // Habits
     const mo = e.habits.mobileUsage, bk = Number(e.habits.bookReading) || 0;
-    const habBuiltin = cf.hide.habits ? "" : '<div class="grid2">' +
-      '<label class="sub field">മൊബൈൽ ഉപയോഗം<select class="select sm" data-ep="habits.mobileUsage">' +
-      [["none", "ഉപയോഗിച്ചിട്ടില്ല"], ["under30", "30 മിനിറ്റിൽ താഴെ"], ["30to60", "30 - 60 മിനിറ്റ്"], ["over60", "1 മണിക്കൂറിൽ കൂടുതൽ"]].map((o) => '<option value="' + o[0] + '"' + (mo === o[0] ? " selected" : "") + ">" + o[1] + "</option>").join("") + "</select></label>" +
-      '<label class="sub field">പുസ്തകം വായിച്ച സമയം<select class="select sm" data-ep="habits.bookReading" data-num="1">' +
-      [[0, "വായിച്ചില്ല"], [15, "15 മിനിറ്റ്"], [30, "30 മിനിറ്റ്"], [45, "45+ മിനിറ്റ്"]].map((o) => '<option value="' + o[0] + '"' + (bk === o[0] ? " selected" : "") + ">" + o[1] + "</option>").join("") + "</select></label></div>";
+    const mobSel = iv("mobile") ? '<label class="sub field">മൊബൈൽ ഉപയോഗം<select class="select sm" data-ep="habits.mobileUsage">' +
+      [["none", "ഉപയോഗിച്ചിട്ടില്ല"], ["under30", "30 മിനിറ്റിൽ താഴെ"], ["30to60", "30 - 60 മിനിറ്റ്"], ["over60", "1 മണിക്കൂറിൽ കൂടുതൽ"]].map((o) => '<option value="' + o[0] + '"' + (mo === o[0] ? " selected" : "") + ">" + o[1] + "</option>").join("") + "</select></label>" : "";
+    const bookSel = iv("book") ? '<label class="sub field">പുസ്തകം വായിച്ച സമയം<select class="select sm" data-ep="habits.bookReading" data-num="1">' +
+      [[0, "വായിച്ചില്ല"], [15, "15 മിനിറ്റ്"], [30, "30 മിനിറ്റ്"], [45, "45+ മിനിറ്റ്"]].map((o) => '<option value="' + o[0] + '"' + (bk === o[0] ? " selected" : "") + ">" + o[1] + "</option>").join("") + "</select></label>" : "";
+    const habBuiltin = mobSel || bookSel ? '<div class="grid2">' + mobSel + bookSel + "</div>" : "";
     if (habBuiltin || cTicks("habits")) h += '<section class="card stack"><h2>ദൈനംദിന ശീലങ്ങൾ</h2>' + habBuiltin + cTicks("habits") + "</section>";
 
     h += '<section class="card stack"><button type="button" class="btn block" data-act="save">' + ICON.download.replace("M12 3v12M7 10l5 5 5-5M5 21h14", "M5 12l5 5 9-10") + "ഇന്നത്തെ രേഖ സേവ് ചെയ്യുക</button>" +
@@ -1006,15 +1035,22 @@
 
   /* ---------- Ustad: own madrasa settings ---------- */
   function trackerSetupCard(m) {
-    const hide = m.hide || {}, cf = mcfg(m.id);
-    return '<section class="card stack"><div><h3>വിദ്യാർത്ഥികളുടെ ട്രാക്കർ ക്രമീകരണം</h3><p class="muted">ഈ മദ്രസയിലെ കുട്ടികൾക്ക് കാണിക്കേണ്ട ഭാഗങ്ങൾ തിരഞ്ഞെടുക്കുക. ഒഴിവാക്കിയ ഭാഗത്തെ പോയിന്റ് കണക്കിൽ ചേർക്കില്ല.</p></div>' +
-      Object.keys(SECS).map((k) => '<label class="switch"><span><b style="font-size:.88rem">' + SECS[k] + '</b><br><span class="muted">' + (hide[k] ? "ഒഴിവാക്കി" : "കാണിക്കുന്നു") + '</span></span><input type="checkbox" data-hide="' + k + '"' + (hide[k] ? "" : " checked") + "></label>").join("") +
-      '<div class="card-head" style="margin:6px 0 0"><h3>സ്വന്തം ഇനങ്ങൾ ചേർക്കുക</h3></div>' +
-      '<select id="cuSec" class="select">' + Object.keys(SECS).map((k) => '<option value="' + k + '">' + SECS[k] + "</option>").join("") + '</select>' +
+    const sc = state.ui.cfgCls || "*";
+    const cf = mcfg(m.id);
+    const sw = (key, label) => {
+      const on = sc === "*" ? isVis(m.id, "", key) : isVis(m.id, sc, key);
+      return '<label class="switch"><span><b style="font-size:.84rem">' + esc(label) + '</b></span><input type="checkbox" data-vis="' + key + '"' + (on ? " checked" : "") + "></label>";
+    };
+    return '<section class="card stack"><div><h3>വിദ്യാർത്ഥികളുടെ ട്രാക്കർ ക്രമീകരണം</h3><p class="muted">ഓരോ ഇനവും കാണിക്കണോ ഒഴിവാക്കണോ എന്ന് തിരഞ്ഞെടുക്കുക. "എല്ലാ ക്ലാസും" തിരഞ്ഞെടുത്താൽ എല്ലാവർക്കും മാറും; ഒരു ക്ലാസ് തിരഞ്ഞെടുത്താൽ ആ ക്ലാസിന് മാത്രം. ഒഴിവാക്കിയ ഇനത്തിന്റെ പോയിന്റ് കണക്കിൽ ചേർക്കില്ല.</p></div>' +
+      '<label class="sub field">ഏത് ക്ലാസിന്<select class="select sm" data-ui="cfgCls"><option value="*"' + (sc === "*" ? " selected" : "") + ">എല്ലാ ക്ലാസും</option>" + CLASSES.map((c) => '<option value="' + esc(c) + '"' + (sc === c ? " selected" : "") + ">" + esc(c) + "</option>").join("") + "</select></label>" +
+      ITEM_GROUPS.map((g) => '<div class="card-head" style="margin:8px 0 0"><h3 style="font-size:.9rem">' + esc(g[0]) + "</h3></div>" + g[1].map((i) => sw(i[0], i[1])).join("")).join("") +
+      '<div class="card-head" style="margin:10px 0 0"><h3>സ്വന്തം ഇനങ്ങൾ ചേർക്കുക</h3></div>' +
+      '<select id="cuSec" class="select">' + Object.keys(SECS).map((k) => '<option value="' + k + '">' + SECS[k] + "</option>").join("") + "</select>" +
       '<input id="cuLabel" class="input" type="text" placeholder="ഇനത്തിന്റെ പേര് (ഉദാ: സൂറത്തുൽ കഹ്ഫ്)" autocomplete="off">' +
-      '<label class="sub field">പോയിന്റ്<select id="cuPts" class="select sm">' + [5, 10, 15, 20, 25, 30].map((n) => '<option value="' + n + '"' + (n === 10 ? " selected" : "") + ">" + n + "</option>").join("") + "</select></label>" +
+      '<div class="grid2 keep"><label class="sub field">പോയിന്റ്<select id="cuPts" class="select sm">' + [5, 10, 15, 20, 25, 30].map((n) => '<option value="' + n + '"' + (n === 10 ? " selected" : "") + ">" + n + "</option>").join("") + '</select></label>' +
+      '<label class="sub field">ക്ലാസ്<select id="cuCls" class="select sm"><option value="*">എല്ലാ ക്ലാസും</option>' + CLASSES.map((c) => '<option value="' + esc(c) + '">' + esc(c) + "</option>").join("") + "</select></label></div>" +
       '<button type="button" class="btn block" data-act="add-custom">' + ICON.plus + "ഇനം ചേർക്കുക</button>" +
-      (cf.customs.length ? cf.customs.map((c) => '<div class="row between" style="gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px"><div style="min-width:0"><div style="font-weight:800;font-size:.86rem">' + esc(c.label) + '</div><div class="muted">' + esc(SECS[c.sec] || "") + " • " + (Number(c.points) || 0) + ' പോയിന്റ്</div></div><button type="button" class="icon-btn" data-act="del-custom" data-id="' + esc(c.id) + '" aria-label="നീക്കുക">' + ICON.trash + "</button></div>").join("") : '<div class="muted">സ്വന്തം ഇനങ്ങൾ ഇല്ല.</div>') +
+      (cf.customs.length ? cf.customs.map((c) => '<div class="row between" style="gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px"><div style="min-width:0"><div style="font-weight:800;font-size:.86rem">' + esc(c.label) + '</div><div class="muted">' + esc(SECS[c.sec] || "") + " • " + (Number(c.points) || 0) + " പോയിന്റ് • " + esc(!c.cls || c.cls === "*" ? "എല്ലാ ക്ലാസും" : c.cls) + '</div></div><button type="button" class="icon-btn" data-act="del-custom" data-id="' + esc(c.id) + '" aria-label="നീക്കുക">' + ICON.trash + "</button></div>").join("") : '<div class="muted">സ്വന്തം ഇനങ്ങൾ ഇല്ല.</div>') +
       "</section>";
   }
   function settingsView() {
@@ -1200,13 +1236,13 @@
     "add-custom"() {
       if (state.session.role !== "ustad") return;
       const m = liveMadrasa(state.session.mid); if (!m) return;
-      const label = cleanName($("#cuLabel").value), sec = $("#cuSec").value, pts = Number($("#cuPts").value) || 10;
+      const label = cleanName($("#cuLabel").value), sec = $("#cuSec").value, pts = Number($("#cuPts").value) || 10, ccls = $("#cuCls").value || "*";
       if (!label) return showToast("ഇനത്തിന്റെ പേര് നൽകുക.", true);
       if (!SECS[sec]) return;
       if (mcfg(m.id).customs.some((c) => c.sec === sec && normName(c.label) === normName(label))) return showToast("ഈ ഇനം ഇതിനകം ഉണ്ട്.", true);
       const id = uid("cu");
       if (!m.custom) m.custom = {};
-      m.custom[id] = { id, label, sec, points: pts, order: Date.now(), deleted: false };
+      m.custom[id] = { id, label, sec, cls: ccls, points: pts, order: Date.now(), deleted: false };
       saveMadrasa(m); showToast("ഇനം ചേർത്തു."); render();
     },
     "del-custom"(el) {
@@ -1531,10 +1567,18 @@
         persist(); render();
         return;
       }
-      if (el.dataset && el.dataset.hide) {
+      if (el.dataset && el.dataset.vis) {
         if (state.session && state.session.role === "ustad") {
-          const m = liveMadrasa(state.session.mid);
-          if (m) { m.hide = Object.assign({}, m.hide || {}, { [el.dataset.hide]: !el.checked }); saveMadrasa(m); showToast(el.checked ? "കാണിക്കും." : "ഒഴിവാക്കി."); render(); }
+          const m = liveMadrasa(state.session.mid), key = el.dataset.vis, sc = state.ui.cfgCls || "*";
+          if (m) {
+            // carry over old section-level hides into per-item rules once
+            if (m.hide) { Object.keys(LEGACY_SEC).forEach((k) => { if (LEGACY_SEC[k] && m.hide[LEGACY_SEC[k]]) { m.vis = m.vis || {}; if (!m.vis[k]) m.vis[k] = { "*": false }; } }); m.hide = null; }
+            m.vis = m.vis || {};
+            const v = m.vis[key] = m.vis[key] || {};
+            if (sc === "*") { Object.keys(v).forEach((k) => { delete v[k]; }); v["*"] = el.checked; }
+            else v[sc] = el.checked;
+            saveMadrasa(m); showToast(el.checked ? "കാണിക്കും." : "ഒഴിവാക്കി."); render();
+          }
         }
         return;
       }
