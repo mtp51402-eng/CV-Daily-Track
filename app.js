@@ -9,7 +9,10 @@
   const CFG = {
     DB: "https://cv-daily-track-default-rtdb.asia-southeast1.firebasedatabase.app",
     ROOT: "madrasa-v2", // new namespace (old single-blob data under /cv-daily-track is left untouched)
-    ADMIN_HASH: 8032031086151853, // cyrb53("cv313") — the code itself is not stored in plain text
+    // ---- Firebase Authentication (fill these three; see README) ----
+    API_KEY: "AIzaSyCOEAVkxIu_P5lwi0eNOhEZstA_tOraqPU",          // Project settings → General → Web API Key
+    ADMIN_EMAIL: "cvhakeem313@gmail.com",  // the admin's Firebase Auth e-mail
+    ADMIN_UID: "uxAj1ihB1eUoQdUs0T3Xt3dIr073",      // Authentication → Users → User UID
     IDB: "madrasa-tracker",
     SYNC_DEBOUNCE: 1500
   };
@@ -154,15 +157,13 @@
   function defaultState() {
     return {
       v: 2,
-      madrasas: {
-        m_seed1: { id: "m_seed1", name: "ദാറുൽ ഹുദാ മദ്രസ", code: "MDR101", openJoin: true, deleted: false, updatedAt: 0 },
-        m_seed2: { id: "m_seed2", name: "നൂറുൽ ഇസ്ലാം മദ്രസ", code: "MDR202", openJoin: true, deleted: false, updatedAt: 0 }
-      },
-      ustads: {
-        u_seed1: { id: "u_seed1", name: "ഉസ്താദ് അഹമ്മദ്", code: "UST101", mid: "m_seed1", deleted: false, updatedAt: 0 }
-      },
+      madrasas: {},
+      ustads: {},
       students: {}, // students[mid][sid]
       records: {}, // records[mid][sid][date]
+      board: {}, // board[mid][sid][date] = {s: score, updatedAt} — public leaderboard numbers only
+      hasPin: {}, // hasPin[mid][sid] = true (staff view)
+      auth: null, // {idToken, refreshToken, exp, uid} for admin / ustad
       dirty: {}, // { "records/m/s/date": 1 } — waiting to be pushed
       session: null, // {role, userId, mid, name, cls}
       ui: { tab: "tracker", date: todayIso(), lbScope: "day", lbDate: todayIso(), lbMonth: todayIso().slice(0, 7), cls: "all", mid: "all" },
@@ -217,8 +218,10 @@
     if (saved && typeof saved === "object") {
       state = Object.assign(base, saved);
       state.ui = Object.assign(base.ui, saved.ui || {});
-      ["madrasas", "ustads", "students", "records", "dirty"].forEach((k) => { if (!state[k] || typeof state[k] !== "object") state[k] = base[k]; });
+      ["madrasas", "ustads", "students", "records", "board", "hasPin", "dirty"].forEach((k) => { if (!state[k] || typeof state[k] !== "object") state[k] = base[k]; });
     }
+    ["m_seed1", "m_seed2"].forEach((k) => { if (state.madrasas[k] && !state.madrasas[k].updatedAt) delete state.madrasas[k]; });
+    if (state.ustads.u_seed1 && !state.ustads.u_seed1.updatedAt) delete state.ustads.u_seed1;
     // Always open on today's date
     state.ui.date = todayIso();
     state.ui.lbDate = todayIso();
@@ -311,10 +314,6 @@
     const t = normName(code);
     if (!t) return null;
     return Object.values(state.ustads).find((u) => !u.deleted && normName(u.code) === t) || null;
-  }
-  function isAdminCode(raw) {
-    const t = normName(raw).replace(/\s+/g, "");
-    return t.length > 0 && cyrb53(t) === CFG.ADMIN_HASH;
   }
   function studentId(mid, cls, name) {
     return "st_" + cyrb53(mid + "|" + cls + "|" + normName(name)).toString(36);
@@ -442,11 +441,19 @@
     return t;
   }
 
-  function dayScore(mid, sid, date) { return calc(recordOf(mid, sid, date), mid, clsOf(mid, sid)); }
+  const boardOf = (mid, sid) => (state.board[mid] && state.board[mid][sid]) || {};
+  // Own/staff-visible full records give an exact score; everyone else only has the published board number.
+  function dayScore(mid, sid, date) {
+    const r = recordOf(mid, sid, date);
+    if (r) return calc(r, mid, clsOf(mid, sid));
+    const b = boardOf(mid, sid)[date];
+    return b ? Number(b.s) || 0 : 0;
+  }
   function monthScore(mid, sid, month) {
     const by = (state.records[mid] && state.records[mid][sid]) || {};
+    const ds = new Set(Object.keys(by).concat(Object.keys(boardOf(mid, sid))));
     let t = 0;
-    for (const d in by) if (d.slice(0, 7) === month) t += calc(by[d], mid, clsOf(mid, sid));
+    ds.forEach((d) => { if (d.slice(0, 7) === month) t += dayScore(mid, sid, d); });
     return t;
   }
 
@@ -477,12 +484,64 @@
   const online = () => navigator.onLine !== false;
   const pendingCount = () => Object.keys(state.dirty).length;
 
-  function url(path) {
-    return CFG.DB + "/" + CFG.ROOT + (path ? "/" + path : "") + ".json";
+  const isPlaceholder = (v) => !v || /^PASTE_/.test(v);
+  const enc = encodeURIComponent;
+  const qBy = (field, value) => "orderBy=" + enc('"' + field + '"') + "&equalTo=" + enc(JSON.stringify(value));
+
+  async function sha256Hex(str) {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
   }
-  async function fetchJson(path) {
-    const r = await fetch(url(path), { cache: "no-store" });
-    if (!r.ok) throw new Error("HTTP " + r.status);
+  const pinKey = (mid, sid, pin) => sha256Hex("mt1|" + mid + "|" + sid + "|" + pin);
+
+  /* ---- Firebase Authentication (admin & ustads only; students use a personal PIN) ---- */
+  async function authCall(endpoint, body) {
+    const r = await fetch("https://identitytoolkit.googleapis.com/v1/accounts:" + endpoint + "?key=" + enc(CFG.API_KEY), {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error((j.error && j.error.message) || "HTTP " + r.status);
+    return j;
+  }
+  function setAuth(j) {
+    state.auth = { idToken: j.idToken, refreshToken: j.refreshToken, exp: Date.now() + (Number(j.expiresIn) || 3600) * 1000, uid: j.localId };
+    persist();
+  }
+  async function getToken() {
+    const a = state.auth;
+    if (!a) return null;
+    if (a.exp - 60000 > Date.now() || !online()) return a.idToken;
+    const r = await fetch("https://securetoken.googleapis.com/v1/token?key=" + enc(CFG.API_KEY), {
+      method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "grant_type=refresh_token&refresh_token=" + enc(a.refreshToken)
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { const e = new Error("AUTH"); e.status = 401; throw e; }
+    state.auth = { idToken: j.id_token, refreshToken: j.refresh_token || a.refreshToken, exp: Date.now() + (Number(j.expires_in) || 3600) * 1000, uid: j.user_id || a.uid };
+    persist();
+    return state.auth.idToken;
+  }
+
+  function url(path, q) {
+    return CFG.DB + "/" + CFG.ROOT + (path ? "/" + path : "") + ".json" + (q ? "?" + q : "");
+  }
+  async function dbReq(path, opt) {
+    opt = opt || {};
+    const q = opt.q ? [opt.q] : [];
+    if (state.auth && (!state.session || state.session.role !== "student")) {
+      const t = await getToken();
+      if (t) q.push("auth=" + enc(t));
+    }
+    const hasBody = opt.body !== undefined;
+    return fetch(url(path, q.join("&")), {
+      method: opt.method || "GET", cache: "no-store",
+      headers: hasBody ? { "Content-Type": "application/json" } : undefined,
+      body: hasBody ? JSON.stringify(opt.body) : undefined
+    });
+  }
+  async function fetchJson(path, q) {
+    const r = await dbReq(path, { q });
+    if (!r.ok) { const e = new Error("HTTP " + r.status); e.status = r.status; throw e; }
     return r.json();
   }
 
@@ -513,43 +572,94 @@
     if (mergeNode(state.ustads, root.ustads, 0, "ustads/")) ch = true;
     if (mergeNode(state.students, root.students, 1, "students/")) ch = true;
     if (mergeNode(state.records, root.records, 2, "records/")) ch = true;
+    if (mergeNode(state.board, root.board, 2, "board/")) ch = true;
     return ch;
+  }
+
+  // Server stores a student's records under records/mid/sid/<64-hex key>/date (writable only with that key);
+  // older data sits directly at records/mid/sid/date. Staff flatten both into mid→sid→date.
+  function flattenRecords(byMid) {
+    const out = {};
+    Object.keys(byMid || {}).forEach((mid) => {
+      out[mid] = {};
+      const bySid = byMid[mid] || {};
+      Object.keys(bySid).forEach((sid) => {
+        const dst = out[mid][sid] = {};
+        const put = (d, rec) => { if (rec && typeof rec === "object" && (!dst[d] || (rec.updatedAt || 0) > (dst[d].updatedAt || 0))) dst[d] = rec; };
+        const node = bySid[sid] || {};
+        Object.keys(node).forEach((k) => {
+          const v = node[k];
+          if (k.length === 64 && v && typeof v === "object" && !v.date) Object.keys(v).forEach((d) => put(d, v[d]));
+          else put(k, v);
+        });
+      });
+    });
+    return out;
   }
 
   async function pull() {
     const s = state.session;
+    if (!s) return false;
     let changed = false;
-    if (!s || s.role === "admin") {
-      if (!s) {
-        const [m, u] = await Promise.all([fetchJson("madrasas"), fetchJson("ustads")]);
-        changed = mergeRemote({ madrasas: m, ustads: u });
-      } else {
-        changed = mergeRemote(await fetchJson(""));
-      }
-    } else {
-      const jobs = [fetchJson("madrasas"), fetchJson("students/" + s.mid), fetchJson("records/" + s.mid)];
-      if (s.role === "ustad") jobs.push(fetchJson("ustads"));
-      const r = await Promise.all(jobs);
+    if (s.role === "student") {
+      const [m, st, bd, rc] = await Promise.all([
+        fetchJson("madrasas", qBy("code", s.mcode)),
+        fetchJson("students/" + s.mid),
+        fetchJson("board/" + s.mid),
+        fetchJson("records/" + s.mid + "/" + s.userId + "/" + s.key).catch((e) => {
+          if (e.status === 401 || e.status === 403) { const x = new Error("KEY"); x.bad = true; throw x; }
+          throw e;
+        })
+      ]);
       changed = mergeRemote({
-        madrasas: r[0],
-        students: r[1] ? { [s.mid]: r[1] } : null,
-        records: r[2] ? { [s.mid]: r[2] } : null,
-        ustads: r[3] || null
+        madrasas: m, students: st ? { [s.mid]: st } : null, board: bd ? { [s.mid]: bd } : null,
+        records: rc ? { [s.mid]: { [s.userId]: rc } } : null
       });
+    } else if (s.role === "ustad") {
+      const [m, u, st, bd, rc, hp] = await Promise.all([
+        fetchJson("madrasas/" + s.mid), fetchJson("ustads", qBy("mid", s.mid)), fetchJson("students/" + s.mid),
+        fetchJson("board/" + s.mid), fetchJson("records/" + s.mid), fetchJson("hasPin/" + s.mid)
+      ]);
+      changed = mergeRemote({
+        madrasas: m ? { [s.mid]: m } : null, ustads: u, students: st ? { [s.mid]: st } : null,
+        board: bd ? { [s.mid]: bd } : null, records: rc ? flattenRecords({ [s.mid]: rc }) : null
+      });
+      state.hasPin[s.mid] = hp || {};
+    } else {
+      const [m, u, st, bd, rc, hp] = await Promise.all([
+        fetchJson("madrasas"), fetchJson("ustads"), fetchJson("students"), fetchJson("board"), fetchJson("records"), fetchJson("hasPin")
+      ]);
+      changed = mergeRemote({ madrasas: m, ustads: u, students: st, board: bd, records: flattenRecords(rc) });
+      state.hasPin = hp || {};
     }
     return changed;
   }
 
+  // What this login may write (everything else stays queued for the right person)
+  function pushable(p) {
+    const s = state.session;
+    if (!s) return false;
+    const a = p.split("/");
+    if (s.role === "student") {
+      if (a[0] === "records" || a[0] === "board") return a[1] === s.mid && a[2] === s.userId;
+      return a[0] === "students" && a[1] === s.mid && a[2] === s.userId;
+    }
+    return a[0] !== "records";
+  }
+
   async function push() {
-    const paths = Object.keys(state.dirty);
+    const s = state.session;
+    const paths = Object.keys(state.dirty).filter(pushable);
     for (let i = 0; i < paths.length; i += 4) {
       const chunk = paths.slice(i, i + 4);
       await Promise.all(chunk.map(async (p) => {
         const val = getPath(p);
         if (val === undefined) { delete state.dirty[p]; return; }
         const stamp = val.updatedAt;
-        const r = await fetch(url(p), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(val) });
-        if (!r.ok) throw new Error("HTTP " + r.status);
+        let rp = p;
+        if (s.role === "student" && p.indexOf("records/") === 0) { const a = p.split("/"); rp = "records/" + a[1] + "/" + a[2] + "/" + s.key + "/" + a[3]; }
+        const r = await dbReq(rp, { method: "PUT", body: val });
+        if (!r.ok) { const e = new Error("HTTP " + r.status); e.status = r.status; throw e; }
         const now = getPath(p);
         if (now && now.updatedAt === stamp) delete state.dirty[p];
       }));
@@ -563,16 +673,29 @@
   }
 
   async function sync(manual) {
+    if (!state.session) return;
     if (syncing) return manual ? "busy" : undefined;
     if (!online()) { updateStrip(); return "offline"; }
     syncing = true;
     syncState = "busy";
     updateStrip();
-    let changed = false;
+    let changed = false, kicked = false;
     syncErr = "";
+    const fail = (e) => {
+      if (e && e.bad) kicked = "PIN മാറ്റിയിരിക്കുന്നു. പുതിയ പിൻ ഉപയോഗിച്ച് വീണ്ടും പ്രവേശിക്കുക.";
+      else if (e && e.message === "AUTH") kicked = "സെഷൻ അവസാനിച്ചു. വീണ്ടും പ്രവേശിക്കുക.";
+      syncErr = syncErr || String((e && e.message) || e);
+    };
     // Push first (so local work is never blocked by a failing read), then pull.
-    try { await push(); } catch (e) { syncErr = String((e && e.message) || e); }
-    try { changed = await pull(); } catch (e) { syncErr = syncErr || String((e && e.message) || e); }
+    try { await push(); } catch (e) { fail(e); }
+    try { changed = await pull(); } catch (e) { fail(e); }
+    if (kicked) {
+      state.session = null; state.auth = null;
+      syncing = false; syncState = "idle";
+      persist(); render();
+      showToast(kicked, true);
+      return "err";
+    }
     if (syncErr) syncState = "err";
     else { state.lastSync = Date.now(); syncState = "ok"; validateSession(); }
     syncing = false;
@@ -582,16 +705,19 @@
     return syncState;
   }
 
-  // If the account was removed remotely, sign out
+  // If the account was removed remotely (or a pre-PIN session is found), sign out
   function validateSession() {
     const s = state.session;
     if (!s || s.role === "admin") return;
     let bad = false;
     if (!liveMadrasa(s.mid)) bad = true;
     if (s.role === "ustad") { const u = state.ustads[s.userId]; if (!u || u.deleted) bad = true; }
-    if (s.role === "student") { const st = state.students[s.mid] && state.students[s.mid][s.userId]; if (st && st.deleted) bad = true; }
+    if (s.role === "student") {
+      if (!s.key) bad = true;
+      const st = state.students[s.mid] && state.students[s.mid][s.userId]; if (st && st.deleted) bad = true;
+    }
     if (bad) {
-      state.session = null;
+      state.session = null; state.auth = null;
       persist();
       showToast("ഈ അക്കൗണ്ട് ഇപ്പോൾ സജീവമല്ല. വീണ്ടും പ്രവേശിക്കുക.", true);
       render();
@@ -714,61 +840,131 @@
   /* ---------- Login ---------- */
   function loginView() {
     return '<section class="card stack" style="gap:16px">' +
-      '<div class="hero"><img class="logo" src="icons/icon-192.png" alt="" /><h2>മദ്രസ പ്രവേശനം</h2><p class="muted">വിദ്യാർത്ഥികൾ പേരും ക്ലാസ്സും മദ്രസ കോഡും നൽകുക</p></div>' +
+      '<div class="hero"><img class="logo" src="icons/icon-192.png" alt="" /><h2>മദ്രസ പ്രവേശനം</h2><p class="muted">പേര്, ക്ലാസ്സ്, മദ്രസ കോഡ്, നിങ്ങളുടെ സ്വന്തം പിൻ എന്നിവ നൽകുക</p></div>' +
       '<div class="stack" style="gap:6px"><label class="field" for="inName">പേര്</label>' +
-      '<div class="input-plus"><input id="inName" class="input" type="text" autocomplete="off" placeholder="പേര്" />' +
-      '<button type="button" class="btn" data-act="login" aria-label="പ്രവേശനം">+</button></div>' +
-      '<p class="muted">ഉസ്താദ് / അഡ്മിൻ ആണെങ്കിൽ നിങ്ങളുടെ കോഡ് ഇവിടെ നൽകുക.</p>' +
-      '<p id="errName" class="err" hidden></p></div>' +
+      '<input id="inName" class="input" type="text" autocomplete="off" placeholder="പേര്" /></div>' +
       '<label class="field">ക്ലാസ്സ്<select id="inClass" class="select">' + CLASSES.map((c) => "<option>" + c + "</option>").join("") + "</select></label>" +
       '<div class="stack" style="gap:8px"><label class="field" for="inCode">മദ്രസ കോഡ്</label>' +
-      '<input id="inCode" class="input" type="password" autocomplete="off" placeholder="മദ്രസ കോഡ് നൽകുക" />' +
-      '<div id="resolved" class="resolved" hidden><span>മദ്രസ:</span><span id="resolvedName"></span></div>' +
-      '<p id="errCode" class="err" hidden></p></div>' +
-      '<button type="button" class="btn block" data-act="login">പ്രവേശനം</button></section>';
+      '<input id="inCode" class="input" type="password" autocomplete="off" placeholder="മദ്രസ കോഡ് നൽകുക" /></div>' +
+      '<div class="stack" style="gap:6px"><label class="field" for="inPin">എന്റെ പിൻ</label>' +
+      '<input id="inPin" class="input" type="password" inputmode="text" autocomplete="off" placeholder="കുറഞ്ഞത് 6 അക്കം/അക്ഷരം" />' +
+      '<p class="muted">ആദ്യമായി വരുന്നവർ ഇവിടെ ഒരു പിൻ ഉണ്ടാക്കുക. ഓർത്തുവെക്കണം — മറ്റാർക്കും പറഞ്ഞുകൊടുക്കരുത്. മറന്നാൽ ഉസ്താദ് റീസെറ്റ് ചെയ്യും.</p></div>' +
+      '<p id="errLogin" class="err" hidden></p>' +
+      '<button type="button" class="btn block" data-act="login">പ്രവേശനം</button>' +
+      '<details class="bulk"><summary>ഉസ്താദ് / അഡ്മിൻ</summary><div class="stack" style="margin-top:8px">' +
+      '<input id="inStaff" class="input" type="password" autocomplete="off" placeholder="നിങ്ങളുടെ കോഡ് / പാസ്‌വേഡ്" />' +
+      '<p id="errStaff" class="err" hidden></p>' +
+      '<div class="grid2 keep"><button type="button" class="btn" data-act="login-ustad">ഉസ്താദ്</button><button type="button" class="btn ghost" data-act="login-admin">അഡ്മിൻ</button></div>' +
+      "</div></details></section>";
   }
 
-  function loginSubmit() {
-    const nameEl = $("#inName"), codeEl = $("#inCode");
-    const errName = $("#errName"), errCode = $("#errCode");
-    errName.hidden = true; errCode.hidden = true;
-    const raw = cleanName(nameEl.value);
-    if (!raw) { errName.textContent = "പേര് നൽകുക."; errName.hidden = false; nameEl.focus(); return; }
+  let loginBusy = false;
+  function loginErr(id, msg) { const e = $(id); if (e) { e.textContent = msg; e.hidden = !msg; } }
 
-    if (isAdminCode(raw)) {
-      startSession({ role: "admin", userId: "admin", mid: "", name: "അഡ്മിൻ", cls: "" }, "rank");
-      showToast("അഡ്മിൻ പാനൽ തുറന്നു.");
-      return;
-    }
-    const u = findUstadByCode(raw);
-    if (u) {
-      const m = liveMadrasa(u.mid);
-      if (!m) { errName.textContent = "ഈ ഉസ്താദിന്റെ മദ്രസ ഇപ്പോൾ സജീവമല്ല."; errName.hidden = false; return; }
-      startSession({ role: "ustad", userId: u.id, mid: m.id, name: u.name, cls: "" }, "rank");
-      showToast(u.name + " — ഉസ്താദ് പാനൽ തുറന്നു.");
-      return;
-    }
+  async function loginSubmit() {
+    if (loginBusy) return;
+    const err = (m) => loginErr("#errLogin", m);
+    err("");
+    const name = cleanName($("#inName").value), codeRaw = cleanName($("#inCode").value);
+    const pin = String($("#inPin").value || "").trim(), cls = $("#inClass").value || CLASSES[0];
+    if (!name) return err("പേര് നൽകുക.");
+    if (!codeRaw) return err("മദ്രസ കോഡ് നൽകുക.");
+    if (pin.length < 6) return err("പിൻ കുറഞ്ഞത് 6 അക്കം/അക്ഷരം വേണം.");
+    if (!online()) return err("പ്രവേശിക്കാൻ ഇന്റർനെറ്റ് വേണം.");
+    loginBusy = true;
+    try {
+      state.auth = null;
+      const mj = await fetchJson("madrasas", qBy("code", codeRaw));
+      const m = Object.values(mj || {}).find((x) => x && !x.deleted);
+      if (!m) return err("ശരിയായ മദ്രസ കോഡ് നൽകുക.");
+      state.madrasas[m.id] = m;
+      const sid = studentId(m.id, cls, name);
+      const [stRec, has] = await Promise.all([fetchJson("students/" + m.id + "/" + sid), fetchJson("hasPin/" + m.id + "/" + sid)]);
+      if (stRec && stRec.deleted) return err("നിങ്ങളെ ഈ മദ്രസയിൽ നിന്ന് നീക്കം ചെയ്തിരിക്കുന്നു. ഉസ്താദിനെ ബന്ധപ്പെടുക.");
+      if (!stRec && m.openJoin === false) return err("ഈ പേര് ഈ ക്ലാസ്സിൽ രജിസ്റ്റർ ചെയ്തിട്ടില്ല. ഉസ്താദിനോട് ചേർക്കാൻ ആവശ്യപ്പെടുക.");
+      const key = await pinKey(m.id, sid, pin);
+      const finish = async (newPin) => {
+        try {
+          if (!stRec) {
+            const rec = { id: sid, mid: m.id, name, cls, deleted: false, updatedAt: Date.now() };
+            const r = await dbReq("students/" + m.id + "/" + sid, { method: "PUT", body: rec });
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            if (!state.students[m.id]) state.students[m.id] = {};
+            state.students[m.id][sid] = rec;
+          }
+          if (newPin) {
+            const r1 = await dbReq("pins/" + m.id + "/" + sid, { method: "PUT", body: key });
+            if (!r1.ok) return err("ഈ പേരിൽ മറ്റൊരാൾ ഇതിനകം പിൻ ഉണ്ടാക്കിയിട്ടുണ്ട്. ഉസ്താദിനെ അറിയിക്കുക.");
+            const r2 = await dbReq("hasPin/" + m.id + "/" + sid, { method: "PUT", body: true });
+            if (!r2.ok) throw new Error("HTTP " + r2.status);
+          } else {
+            const r = await dbReq("records/" + m.id + "/" + sid + "/" + key);
+            if (r.status === 401 || r.status === 403) return err("പിൻ തെറ്റാണ്.");
+            if (!r.ok) throw new Error("HTTP " + r.status);
+          }
+          startSession({ role: "student", userId: sid, mid: m.id, name: stRec ? stRec.name : name, cls, key, mcode: m.code }, "tracker");
+          showToast(name + " — സ്വാഗതം.");
+        } catch (e) { err("പ്രവേശിക്കാൻ കഴിഞ്ഞില്ല (" + ((e && e.message) || e) + "). ഇന്റർനെറ്റ് പരിശോധിക്കുക."); }
+      };
+      if (has) { await finish(false); return; }
+      openModal({
+        title: "പിൻ ഉറപ്പിക്കുക", text: "ഇത് നിങ്ങളുടെ ആദ്യ പ്രവേശനമാണ്. തിരഞ്ഞെടുത്ത പിൻ ഒരിക്കൽ കൂടി നൽകുക.",
+        body: '<input id="mf_pin2" class="input" type="password" autocomplete="off" placeholder="പിൻ ആവർത്തിക്കുക">', ok: "ഉറപ്പിക്കുക",
+        onOk() {
+          if (String(mv("pin2")).trim() !== pin) return modalError("പിൻ പൊരുത്തപ്പെടുന്നില്ല."), false;
+          finish(true);
+        }
+      });
+    } catch (e) {
+      err("സെർവറുമായി ബന്ധപ്പെടാൻ കഴിഞ്ഞില്ല (" + ((e && e.message) || e) + ").");
+    } finally { loginBusy = false; }
+  }
 
-    const m = findMadrasaByCode(codeEl.value);
-    if (!m) {
-      errCode.textContent = online() || Object.keys(state.madrasas).length > 2
-        ? "ശരിയായ മദ്രസ കോഡ് നൽകുക."
-        : "ശരിയായ മദ്രസ കോഡ് നൽകുക. ആദ്യമായി ഉപയോഗിക്കുമ്പോൾ ഇന്റർനെറ്റ് ആവശ്യമാണ്.";
-      errCode.hidden = false; codeEl.focus(); return;
-    }
-    const cls = $("#inClass").value || CLASSES[0];
-    const id = studentId(m.id, cls, raw);
-    const ex = state.students[m.id] && state.students[m.id][id];
-    if (ex && ex.deleted) { errName.textContent = "നിങ്ങളെ ഈ മദ്രസയിൽ നിന്ന് നീക്കം ചെയ്തിരിക്കുന്നു. ഉസ്താദിനെ ബന്ധപ്പെടുക."; errName.hidden = false; return; }
-    if (!ex) {
-      if (m.openJoin === false) { errName.textContent = "ഈ പേര് ഈ ക്ലാസ്സിൽ രജിസ്റ്റർ ചെയ്തിട്ടില്ല. ഉസ്താദിനോട് ചേർക്കാൻ ആവശ്യപ്പെടുക."; errName.hidden = false; return; }
-      saveStudent({ id, mid: m.id, name: raw, cls, deleted: false });
-    }
-    startSession({ role: "student", userId: id, mid: m.id, name: ex ? ex.name : raw, cls }, "tracker");
-    showToast(raw + " — സ്വാഗതം.");
+  function authMsg(e) {
+    const m = String((e && e.message) || e);
+    if (/INVALID_LOGIN|INVALID_PASSWORD|EMAIL_NOT_FOUND|NOT_ADMIN/.test(m)) return "കോഡ് / പാസ്‌വേഡ് ശരിയല്ല.";
+    if (/TOO_MANY/.test(m)) return "ഒരുപാട് ശ്രമങ്ങൾ. കുറച്ച് കഴിഞ്ഞ് വീണ്ടും ശ്രമിക്കുക.";
+    return "പ്രവേശിക്കാൻ കഴിഞ്ഞില്ല (" + m + ").";
+  }
+  async function staffLogin(kind) {
+    if (loginBusy) return;
+    const err = (m) => loginErr("#errStaff", m);
+    err("");
+    const code = cleanName($("#inStaff").value);
+    if (!code) return err("കോഡ് നൽകുക.");
+    if (isPlaceholder(CFG.API_KEY)) return err("ആപ്പ് സജ്ജീകരണം പൂർത്തിയായിട്ടില്ല (API key ചേർക്കണം).");
+    if (!online()) return err("പ്രവേശിക്കാൻ ഇന്റർനെറ്റ് വേണം.");
+    loginBusy = true;
+    try {
+      state.auth = null;
+      if (kind === "admin") {
+        if (isPlaceholder(CFG.ADMIN_EMAIL)) return err("ആപ്പ് സജ്ജീകരണം പൂർത്തിയായിട്ടില്ല (admin e-mail ചേർക്കണം).");
+        const j = await authCall("signInWithPassword", { email: CFG.ADMIN_EMAIL, password: code, returnSecureToken: true });
+        if (!isPlaceholder(CFG.ADMIN_UID) && j.localId !== CFG.ADMIN_UID) throw new Error("NOT_ADMIN");
+        setAuth(j);
+        startSession({ role: "admin", userId: "admin", mid: "", name: "അഡ്മിൻ", cls: "" }, "rank");
+        showToast("അഡ്മിൻ പാനൽ തുറന്നു.");
+      } else {
+        const mj = await fetchJson("ustads", qBy("code", code));
+        const u = Object.values(mj || {}).find((x) => x && !x.deleted);
+        if (!u) return err("ശരിയായ ഉസ്താദ് കോഡ് നൽകുക.");
+        if (!u.authEmail) return err("ഈ കോഡ് ഇതുവരെ പുതുക്കിയിട്ടില്ല. അഡ്മിനോട് ഉസ്താദിന്റെ കോഡ് ഒരിക്കൽ കൂടി സേവ് ചെയ്യാൻ പറയുക.");
+        const j = await authCall("signInWithPassword", { email: u.authEmail, password: code, returnSecureToken: true });
+        setAuth(j);
+        state.ustads[u.id] = u;
+        const m = await fetchJson("madrasas/" + u.mid);
+        if (!m || m.deleted) { state.auth = null; return err("ഈ ഉസ്താദിന്റെ മദ്രസ ഇപ്പോൾ സജീവമല്ല."); }
+        state.madrasas[m.id || u.mid] = m;
+        startSession({ role: "ustad", userId: u.id, mid: u.mid, name: u.name, cls: "" }, "rank");
+        showToast(u.name + " — ഉസ്താദ് പാനൽ തുറന്നു.");
+      }
+    } catch (e) { state.auth = null; err(authMsg(e)); }
+    finally { loginBusy = false; }
   }
 
   function startSession(sess, tab) {
+    // Drop queued changes that belong to someone else on this phone
+    Object.keys(state.dirty).forEach((p) => { state.session = sess; if (!pushable(p)) delete state.dirty[p]; });
     state.session = sess;
     state.ui.tab = tab;
     state.ui.date = todayIso();
@@ -875,6 +1071,15 @@
     return h;
   }
 
+  // Save a day's record (private, needs the student's PIN key) and publish only its total to the board
+  function touchRecord(e) {
+    const s = state.session, date = state.ui.date;
+    markDirty("records/" + s.mid + "/" + s.userId + "/" + date);
+    if (!state.board[s.mid]) state.board[s.mid] = {};
+    if (!state.board[s.mid][s.userId]) state.board[s.mid][s.userId] = {};
+    state.board[s.mid][s.userId][date] = { s: calc(e, s.mid, s.cls), updatedAt: e.updatedAt };
+    markDirty("board/" + s.mid + "/" + s.userId + "/" + date);
+  }
   function editEntry(path, value) {
     const s = state.session;
     const e = currentEntry(true);
@@ -890,7 +1095,7 @@
     if (path.indexOf("exemption.perPrayer.") === 0 && value) e.exemption.poornamayum = false;
     if (path.indexOf("sunnah.rawatib.") === 0 && (value === 1 || value === 3)) setDeep(e, path, 0);
     e.updatedAt = Date.now();
-    markDirty("records/" + s.mid + "/" + s.userId + "/" + state.ui.date);
+    touchRecord(e);
     render();
   }
 
@@ -1002,6 +1207,7 @@
       body += '<div class="group-title"><span>' + esc(c) + "</span><span>" + list.length + "</span></div>" + list.map((st) =>
         '<div class="list-row"><span class="avatar" style="width:34px;height:34px;border-radius:11px;font-size:.8rem">' + esc(initial(st.name)) + '</span><div class="grow"><div class="trunc" style="font-weight:800;font-size:.86rem">' + esc(st.name) + "</div>" +
         (isAdmin ? '<div class="muted trunc">' + esc((getMadrasa(st.mid) || {}).name || "") + "</div>" : "") + "</div>" +
+        (((state.hasPin[st.mid] || {})[st.id]) ? '<button type="button" class="icon-btn" data-act="reset-pin" data-mid="' + esc(st.mid) + '" data-id="' + esc(st.id) + '" aria-label="പിൻ റീസെറ്റ്" title="പിൻ റീസെറ്റ്">' + ICON.logout + "</button>" : "") +
         '<button type="button" class="icon-btn danger" data-act="del-student" data-mid="' + esc(st.mid) + '" data-id="' + esc(st.id) + '" aria-label="നീക്കം ചെയ്യുക">' + ICON.trash + "</button></div>").join("");
     });
     h += total ? body : '<div class="empty">വിദ്യാർത്ഥികളില്ല.</div>';
@@ -1012,6 +1218,7 @@
   /* ---------- Admin: madrasas ---------- */
   function madrasasView() {
     let h = '<section class="card stack"><h3>പുതിയ മദ്രസ ചേർക്കുക</h3><input id="mdName" class="input" type="text" placeholder="മദ്രസയുടെ പേര്" autocomplete="off"><input id="mdCode" class="input" type="text" placeholder="മദ്രസ കോഡ്" autocomplete="off"><button type="button" class="btn block" data-act="add-madrasa">' + ICON.plus + "മദ്രസ ചേർക്കുക</button></section>";
+    h += '<section class="card stack"><h3>റാങ്കിംഗ് പുതുക്കുക</h3><p class="muted">റാങ്കിംഗിലെ പോയിന്റുകൾ എല്ലാ കുട്ടികളുടെയും രേഖകളിൽ നിന്ന് വീണ്ടും കണക്കാക്കി പ്രസിദ്ധീകരിക്കുന്നു (ക്രമീകരണം മാറ്റിയാലോ പഴയ ഡാറ്റ ചേർക്കുമ്പോഴോ ഉപയോഗിക്കുക).</p><button type="button" class="btn block ghost" data-act="rebuild-board">റാങ്കിംഗ് പുതുക്കുക</button></section>';
     const list = liveMadrasas();
     h += '<section class="card stack"><div class="card-head" style="margin:0"><h3>മദ്രസകൾ</h3><span class="muted">' + list.length + "</span></div>" + (list.length ? list.map((m) => {
       const sc = studentsOf(m.id).length, uc = liveUstads().filter((u) => u.mid === m.id).length;
@@ -1078,9 +1285,36 @@
     return Object.values(state.ustads).some((u) => !u.deleted && u.id !== exceptId && normName(u.code) === t);
   }
 
+  // Admin only: make a Firebase Auth account for the ustad (password = code), map its UID → madrasa, save the record.
+  async function provisionUstad(u, old) {
+    try {
+      if (isPlaceholder(CFG.API_KEY)) throw new Error("API key ചേർത്തിട്ടില്ല");
+      if (!online()) throw new Error("ഇന്റർനെറ്റ് വേണം");
+      const rev = ((old && old.rev) || 0) + 1;
+      const email = u.id + ".r" + rev + "@madrasa-tracker.app";
+      const j = await authCall("signUp", { email, password: u.code, returnSecureToken: false });
+      const r = await dbReq("staff/" + j.localId, { method: "PUT", body: u.mid });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      if (old && old.authUid) await dbReq("staff/" + old.authUid, { method: "DELETE" }).catch(() => {});
+      u.authEmail = email; u.authUid = j.localId; u.rev = rev;
+      saveUstad(u);
+      if (old) Object.assign(old, u);
+      return true;
+    } catch (e) {
+      const m = String((e && e.message) || e);
+      showToast("ഉസ്താദിനെ സേവ് ചെയ്യാൻ കഴിഞ്ഞില്ല: " + (/WEAK_PASSWORD/.test(m) ? "കോഡ് ദുർബലം" : m), true);
+      return false;
+    }
+  }
+
   const actions = {
     login: loginSubmit,
-    logout() { state.session = null; persist(); render(); },
+    async logout() {
+      if (online() && state.session && Object.keys(state.dirty).some(pushable)) { try { await Promise.race([sync(true), new Promise((r) => setTimeout(r, 6000))]); } catch (e) { /* ignore */ } }
+      state.session = null; state.auth = null; persist(); render();
+    },
+    "login-ustad"() { staffLogin("ustad"); },
+    "login-admin"() { staffLogin("admin"); },
     tab(el) { state.ui.tab = el.dataset.tab; persist(); render(); window.scrollTo(0, 0); },
     ui(el) { state.ui[el.dataset.k] = el.dataset.v; render(); },
 
@@ -1093,7 +1327,7 @@
       const sess = state.session;
       const e = currentEntry(true);
       e.updatedAt = Date.now();
-      markDirty("records/" + sess.mid + "/" + sess.userId + "/" + state.ui.date);
+      touchRecord(e);
       await persistNow();
       if (!online()) { showToast("ഓഫ്‌ലൈൻ: ഫോണിൽ സേവ് ചെയ്തു. ഓൺലൈൻ ആകുമ്പോൾ സ്വയം അയയ്ക്കും."); render(); return; }
       el.disabled = true;
@@ -1155,6 +1389,7 @@
     "add-madrasa"() {
       const name = cleanName($("#mdName").value), code = cleanName($("#mdCode").value);
       if (!name || !code) return showToast("മദ്രസയുടെ പേരും കോഡും നൽകുക.", true);
+      if (code.length < 6) return showToast("മദ്രസ കോഡ് കുറഞ്ഞത് 6 അക്ഷരം വേണം.", true);
       if (codeTakenByMadrasa(code)) return showToast("ഈ മദ്രസ കോഡ് നിലവിലുണ്ട്.", true);
       saveMadrasa({ id: uid("m"), name, code, openJoin: true, deleted: false });
       showToast("പുതിയ മദ്രസ ചേർത്തു.");
@@ -1170,6 +1405,7 @@
         onOk() {
           const name = cleanName(mv("name")), code = cleanName(mv("code"));
           if (!name || !code) return modalError("പേരും കോഡും നൽകുക."), false;
+          if (code.length < 6) return modalError("മദ്രസ കോഡ് കുറഞ്ഞത് 6 അക്ഷരം വേണം."), false;
           if (codeTakenByMadrasa(code, m.id)) return modalError("ഈ കോഡ് മറ്റൊരു മദ്രസയിൽ ഉണ്ട്."), false;
           m.name = name; m.code = code; m.openJoin = !!mv("join");
           saveMadrasa(m); showToast("മദ്രസ അപ്ഡേറ്റ് ചെയ്തു."); render();
@@ -1185,29 +1421,69 @@
       });
     },
 
+    "reset-pin"(el) {
+      const st = state.students[el.dataset.mid] && state.students[el.dataset.mid][el.dataset.id];
+      if (!st) return;
+      openModal({
+        title: "പിൻ റീസെറ്റ് ചെയ്യണോ?", text: st.name + " (" + st.cls + ") — അടുത്ത പ്രവേശനത്തിൽ പുതിയ പിൻ ഉണ്ടാക്കണം. (ഇതുവരെയുള്ള രേഖകൾ ഉസ്താദിന് കാണാം; കുട്ടിയുടെ സ്വന്തം പഴയ ചരിത്രം പുതിയ പിനിൽ കാണില്ല.)",
+        ok: "റീസെറ്റ്", danger: true,
+        onOk() {
+          (async () => {
+            try {
+              if (!online()) throw new Error("ഓഫ്‌ലൈൻ");
+              const a = await dbReq("pins/" + st.mid + "/" + st.id, { method: "DELETE" });
+              const b = await dbReq("hasPin/" + st.mid + "/" + st.id, { method: "DELETE" });
+              if (!a.ok || !b.ok) throw new Error("HTTP " + (a.ok ? b.status : a.status));
+              if (state.hasPin[st.mid]) delete state.hasPin[st.mid][st.id];
+              persist(); render();
+              showToast(st.name + " — പിൻ റീസെറ്റ് ചെയ്തു.");
+            } catch (e) { showToast("റീസെറ്റ് ചെയ്യാൻ കഴിഞ്ഞില്ല: " + ((e && e.message) || e), true); }
+          })();
+        }
+      });
+    },
+    async "rebuild-board"(el) {
+      if (state.session.role !== "admin") return;
+      let n = 0;
+      Object.keys(state.records).forEach((mid) => Object.keys(state.records[mid] || {}).forEach((sid) => {
+        const cls = clsOf(mid, sid);
+        Object.keys(state.records[mid][sid] || {}).forEach((d) => {
+          const e = state.records[mid][sid][d];
+          if (!e || typeof e !== "object") return;
+          if (!state.board[mid]) state.board[mid] = {};
+          if (!state.board[mid][sid]) state.board[mid][sid] = {};
+          state.board[mid][sid][d] = { s: calc(e, mid, cls), updatedAt: Date.now() };
+          state.dirty["board/" + mid + "/" + sid + "/" + d] = 1; n++;
+        });
+      }));
+      persist(); scheduleSync();
+      showToast(n + " ദിവസത്തെ പോയിന്റുകൾ പുതുക്കാൻ അയയ്ക്കുന്നു.");
+      render();
+    },
+
+    // Ustad accounts are real Firebase Auth users, created by the admin (the code is the password)
     "add-ustad"() {
       const name = cleanName($("#usName").value), code = cleanName($("#usCode").value), mid = $("#usMid").value;
       if (!name || !code || !mid) return showToast("ഉസ്താദിന്റെ പേര്, കോഡ്, മദ്രസ എന്നിവ നൽകുക.", true);
-      if (isAdminCode(code)) return showToast("ഈ കോഡ് ഉപയോഗിക്കാൻ കഴിയില്ല.", true);
+      if (code.length < 8) return showToast("ഉസ്താദ് കോഡ് കുറഞ്ഞത് 8 അക്ഷരം വേണം.", true);
       if (codeTakenByUstad(code)) return showToast("ഈ ഉസ്താദ് കോഡ് നിലവിലുണ്ട്.", true);
-      saveUstad({ id: uid("u"), name, code, mid, deleted: false });
-      showToast("ഉസ്താദിനെ സേവ് ചെയ്തു.");
-      render();
+      provisionUstad({ id: uid("u"), name, code, mid, deleted: false }, null).then((ok) => { if (ok) { showToast("ഉസ്താദിനെ സേവ് ചെയ്തു."); render(); } });
     },
     "edit-ustad"(el) {
       const u = state.ustads[el.dataset.id];
       if (!u) return;
       openModal({
         title: "ഉസ്താദ് എഡിറ്റ് ചെയ്യുക",
-        body: '<label class="field">പേര്<input id="mf_name" class="input" value="' + esc(u.name) + '"></label><label class="field">ഉസ്താദ് കോഡ്<input id="mf_code" class="input" value="' + esc(u.code) + '"></label>' +
+        body: '<label class="field">പേര്<input id="mf_name" class="input" value="' + esc(u.name) + '"></label><label class="field">ഉസ്താദ് കോഡ് (പാസ്‌വേഡ്)<input id="mf_code" class="input" value="' + esc(u.code) + '"></label>' +
           '<label class="field">മദ്രസ<select id="mf_mid" class="select">' + liveMadrasas().map((m) => '<option value="' + esc(m.id) + '"' + (m.id === u.mid ? " selected" : "") + ">" + esc(m.name) + "</option>").join("") + "</select></label>",
         onOk() {
-          const name = cleanName(mv("name")), code = cleanName(mv("code"));
+          const name = cleanName(mv("name")), code = cleanName(mv("code")), mid = mv("mid") || u.mid;
           if (!name || !code) return modalError("പേരും കോഡും നൽകുക."), false;
-          if (isAdminCode(code)) return modalError("ഈ കോഡ് ഉപയോഗിക്കാൻ കഴിയില്ല."), false;
+          if (code.length < 8) return modalError("ഉസ്താദ് കോഡ് കുറഞ്ഞത് 8 അക്ഷരം വേണം."), false;
           if (codeTakenByUstad(code, u.id)) return modalError("ഈ കോഡ് മറ്റൊരു ഉസ്താദിനുണ്ട്."), false;
-          u.name = name; u.code = code; u.mid = mv("mid") || u.mid;
-          saveUstad(u); showToast("ഉസ്താദ് അപ്ഡേറ്റ് ചെയ്തു."); render();
+          const next = Object.assign({}, u, { name, code, mid });
+          const needAcct = !u.authEmail || u.code !== code || u.mid !== mid;
+          (needAcct ? provisionUstad(next, u) : Promise.resolve((saveUstad(Object.assign(u, { name })), true))).then((ok) => { if (ok) { showToast("ഉസ്താദ് അപ്ഡേറ്റ് ചെയ്തു."); render(); } });
         }
       });
     },
@@ -1216,7 +1492,14 @@
       if (!u) return;
       openModal({
         title: "ഉസ്താദിനെ നീക്കം ചെയ്യണോ?", text: u.name + " — ഈ കോഡ് ഉപയോഗിച്ച് ഇനി പ്രവേശിക്കാൻ കഴിയില്ല.", ok: "നീക്കം ചെയ്യുക", danger: true,
-        onOk() { u.deleted = true; saveUstad(u); showToast("ഉസ്താദിനെ നീക്കം ചെയ്തു."); render(); }
+        onOk() {
+          (async () => {
+            try {
+              if (u.authUid) { const r = await dbReq("staff/" + u.authUid, { method: "DELETE" }); if (!r.ok) throw new Error("HTTP " + r.status); }
+              u.deleted = true; saveUstad(u); showToast("ഉസ്താദിനെ നീക്കം ചെയ്തു."); render();
+            } catch (e) { showToast("നീക്കം ചെയ്യാൻ കഴിഞ്ഞില്ല: " + ((e && e.message) || e), true); }
+          })();
+        }
       });
     },
 
@@ -1257,6 +1540,7 @@
       const code = cleanName($("#ownCode").value);
       if (!m) return showToast("മദ്രസ കണ്ടെത്താൻ കഴിഞ്ഞില്ല.", true);
       if (!code) return showToast("മദ്രസ കോഡ് നൽകുക.", true);
+      if (code.length < 6) return showToast("മദ്രസ കോഡ് കുറഞ്ഞത് 6 അക്ഷരം വേണം.", true);
       if (codeTakenByMadrasa(code, m.id)) return showToast("ഈ കോഡ് മറ്റൊരു മദ്രസയിൽ നിലവിലുണ്ട്.", true);
       m.code = code; saveMadrasa(m);
       showToast("നിങ്ങളുടെ മദ്രസ കോഡ് അപ്ഡേറ്റ് ചെയ്തു.");
@@ -1588,18 +1872,10 @@
       }
     });
 
-    document.addEventListener("input", (ev) => {
-      if (ev.target.id === "inCode") {
-        const m = findMadrasaByCode(ev.target.value);
-        const box = $("#resolved");
-        if (m) { $("#resolvedName").textContent = m.name; box.hidden = false; } else box.hidden = true;
-        $("#errCode").hidden = true;
-      }
-    });
-
     document.addEventListener("keydown", (ev) => {
       if (ev.key === "Escape" && modal) { closeModal(); return; }
-      if (ev.key === "Enter" && !state.session && (ev.target.id === "inName" || ev.target.id === "inCode")) { ev.preventDefault(); loginSubmit(); }
+      if (ev.key === "Enter" && !state.session && (ev.target.id === "inName" || ev.target.id === "inCode" || ev.target.id === "inPin")) { ev.preventDefault(); loginSubmit(); }
+      if (ev.key === "Enter" && !state.session && ev.target.id === "inStaff") { ev.preventDefault(); staffLogin("ustad"); }
       if (ev.key === "Enter" && modal && ev.target.tagName === "INPUT") { ev.preventDefault(); actions["modal-ok"](); }
     });
 
