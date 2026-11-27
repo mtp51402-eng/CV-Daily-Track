@@ -214,7 +214,7 @@
     // IndexedDB + localStorage രണ്ടിലും സേവ് ചെയ്യുന്നു; വായിക്കാൻ 3 തവണ ശ്രമിക്കും; പുതിയ കോപ്പി എടുക്കും
     let a = { ok: false };
     for (let i = 0; i < 3 && !a.ok; i++) {
-      try { a = { ok: true, v: await withTimeout(idbGet("state"), 5000) }; } catch (e) { await new Promise((r) => setTimeout(r, 400)); }
+      try { a = { ok: true, v: await withTimeout(idbGet("state"), 5000) }; } catch (e) { dbPromise = null; await new Promise((r) => setTimeout(r, 400)); }
     }
     let b = null;
     try { const raw = localStorage.getItem("mt_state_v2"); if (raw) b = JSON.parse(raw); } catch (e) { /* ignore */ }
