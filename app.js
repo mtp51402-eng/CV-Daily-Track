@@ -208,20 +208,21 @@
     });
   }
 
-  let loadOk = true;
+  let loadOk = true, idbErr = "";
+  const lsOnly = () => { try { return localStorage.getItem("mt_lsonly") === "1"; } catch (e) { return false; } };
   async function loadState() {
     const base = defaultState();
     // IndexedDB + localStorage രണ്ടിലും സേവ് ചെയ്യുന്നു; വായിക്കാൻ 3 തവണ ശ്രമിക്കും; പുതിയ കോപ്പി എടുക്കും
     let a = { ok: false };
-    for (let i = 0; i < 3 && !a.ok; i++) {
-      try { a = { ok: true, v: await withTimeout(idbGet("state"), 5000) }; } catch (e) { dbPromise = null; await new Promise((r) => setTimeout(r, 400)); }
+    for (let i = 0; i < 3 && !a.ok && !lsOnly(); i++) {
+      try { a = { ok: true, v: await withTimeout(idbGet("state"), 5000) }; } catch (e) { idbErr = String((e && (e.name || e.message)) || e); dbPromise = null; await new Promise((r) => setTimeout(r, 400)); }
     }
     let b = null;
     try { const raw = localStorage.getItem("mt_state_v2"); if (raw) b = JSON.parse(raw); } catch (e) { /* ignore */ }
     const ta = a.ok && a.v && typeof a.v === "object" ? (a.v.savedAt || 1) : 0;
     const tb = b && typeof b === "object" ? (b.savedAt || 1) : 0;
     let saved = ta || tb ? (ta >= tb ? a.v : b) : null;
-    if (!a.ok && !b) loadOk = false; // വായിക്കാൻ കഴിഞ്ഞില്ല: ശൂന്യമായ ഡാറ്റ കൊണ്ട് മുകളിലെഴുതില്ല
+    if (!a.ok && !b && !lsOnly()) loadOk = false; // വായിക്കാൻ കഴിഞ്ഞില്ല: ശൂന്യമായ ഡാറ്റ കൊണ്ട് മുകളിലെഴുതില്ല
     if (saved && typeof saved === "object") {
       state = Object.assign(base, saved);
       state.ui = Object.assign(base.ui, saved.ui || {});
@@ -244,6 +245,7 @@
     if (!loadOk) return;
     state.savedAt = Date.now();
     try { localStorage.setItem("mt_state_v2", JSON.stringify(state)); } catch (e) { /* storage full */ }
+    if (lsOnly()) return;
     try { await withTimeout(idbSet("state", JSON.parse(JSON.stringify(state))), 4000); } catch (e) { /* localStorage copy remains */ }
   }
 
@@ -1909,10 +1911,14 @@
     validateSession();
     render();
     if (!loadOk) {
-      showToast("ഡാറ്റ വായിക്കാൻ കഴിഞ്ഞില്ല. ആപ്പ് പൂർണമായി അടച്ച് വീണ്ടും തുറക്കുക.", true);
       const t = setInterval(async () => {
-        try { const v = await withTimeout(idbGet("state"), 5000); clearInterval(t); location.reload(); } catch (e) { /* retry */ }
+        try { await withTimeout(idbGet("state"), 5000); clearInterval(t); location.reload(); } catch (e) { dbPromise = null; }
       }, 4000);
+      openModal({
+        title: "ഡാറ്റ വായിക്കാൻ കഴിഞ്ഞില്ല", focus: false, ok: "ലളിതമായ സേവ് ഉപയോഗിക്കുക",
+        text: "ഈ ഫോണിലെ പഴയ ഡാറ്റ ഇപ്പോൾ വായിക്കാൻ കഴിയുന്നില്ല (കാരണം: " + (idbErr || "സമയം കഴിഞ്ഞു") + "). ആപ്പ് പൂർണമായി അടച്ച് വീണ്ടും തുറന്ന് നോക്കുക. അപ്പോഴും വരുന്നുണ്ടെങ്കിൽ ഈ ബട്ടൺ അമർത്തുക: ഇനി മുതൽ ബ്രൗസറിന്റെ ലളിതമായ സ്റ്റോറേജിൽ സേവ് ചെയ്യും. പഴയ ഡാറ്റ തിരിച്ചുവരണമെന്നില്ല.",
+        onOk() { try { localStorage.setItem("mt_lsonly", "1"); } catch (e) { /* ignore */ } clearInterval(t); loadOk = true; persistNow(); showToast("ഇനി സേവ് ചെയ്യാം."); }
+      });
     }
 
     if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
