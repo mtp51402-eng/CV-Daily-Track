@@ -208,7 +208,7 @@
     });
   }
 
-  let loadOk = true, idbErr = "";
+  let loadOk = true, idbErr = "", idbSkip = false;
   const lsOnly = () => { try { return localStorage.getItem("mt_lsonly") === "1"; } catch (e) { return false; } };
   async function loadState() {
     const base = defaultState();
@@ -222,7 +222,7 @@
     const ta = a.ok && a.v && typeof a.v === "object" ? (a.v.savedAt || 1) : 0;
     const tb = b && typeof b === "object" ? (b.savedAt || 1) : 0;
     let saved = ta || tb ? (ta >= tb ? a.v : b) : null;
-    if (!a.ok && !b && !lsOnly()) loadOk = false; // വായിക്കാൻ കഴിഞ്ഞില്ല: ശൂന്യമായ ഡാറ്റ കൊണ്ട് മുകളിലെഴുതില്ല
+    if (!a.ok) idbSkip = true; // IndexedDB തകരാറിലാണെങ്കിൽ മുന്നറിയിപ്പില്ലാതെ localStorage ഉപയോഗിക്കും // വായിക്കാൻ കഴിഞ്ഞില്ല: ശൂന്യമായ ഡാറ്റ കൊണ്ട് മുകളിലെഴുതില്ല
     if (saved && typeof saved === "object") {
       state = Object.assign(base, saved);
       state.ui = Object.assign(base.ui, saved.ui || {});
@@ -245,7 +245,7 @@
     if (!loadOk) return;
     state.savedAt = Date.now();
     try { localStorage.setItem("mt_state_v2", JSON.stringify(state)); } catch (e) { /* storage full */ }
-    if (lsOnly()) return;
+    if (lsOnly() || idbSkip) return;
     try { await withTimeout(idbSet("state", JSON.parse(JSON.stringify(state))), 4000); } catch (e) { /* localStorage copy remains */ }
   }
 
