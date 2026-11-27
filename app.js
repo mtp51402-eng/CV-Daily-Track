@@ -208,13 +208,20 @@
     });
   }
 
+  let loadOk = true;
   async function loadState() {
     const base = defaultState();
-    let saved = null;
-    try { saved = await withTimeout(idbGet("state"), 3000); } catch (e) { /* fall through to localStorage */ }
-    if (!saved) {
-      try { const raw = localStorage.getItem("mt_state_v2"); if (raw) saved = JSON.parse(raw); } catch (e) { /* ignore */ }
+    // IndexedDB + localStorage രണ്ടിലും സേവ് ചെയ്യുന്നു; വായിക്കാൻ 3 തവണ ശ്രമിക്കും; പുതിയ കോപ്പി എടുക്കും
+    let a = { ok: false };
+    for (let i = 0; i < 3 && !a.ok; i++) {
+      try { a = { ok: true, v: await withTimeout(idbGet("state"), 5000) }; } catch (e) { await new Promise((r) => setTimeout(r, 400)); }
     }
+    let b = null;
+    try { const raw = localStorage.getItem("mt_state_v2"); if (raw) b = JSON.parse(raw); } catch (e) { /* ignore */ }
+    const ta = a.ok && a.v && typeof a.v === "object" ? (a.v.savedAt || 1) : 0;
+    const tb = b && typeof b === "object" ? (b.savedAt || 1) : 0;
+    let saved = ta || tb ? (ta >= tb ? a.v : b) : null;
+    if (!a.ok && !b) loadOk = false; // വായിക്കാൻ കഴിഞ്ഞില്ല: ശൂന്യമായ ഡാറ്റ കൊണ്ട് മുകളിലെഴുതില്ല
     if (saved && typeof saved === "object") {
       state = Object.assign(base, saved);
       state.ui = Object.assign(base.ui, saved.ui || {});
@@ -234,11 +241,10 @@
   }
   async function persistNow() {
     clearTimeout(persistTimer);
-    try {
-      await withTimeout(idbSet("state", JSON.parse(JSON.stringify(state))), 4000);
-    } catch (e) {
-      try { localStorage.setItem("mt_state_v2", JSON.stringify(state)); } catch (e2) { /* storage full */ }
-    }
+    if (!loadOk) return;
+    state.savedAt = Date.now();
+    try { localStorage.setItem("mt_state_v2", JSON.stringify(state)); } catch (e) { /* storage full */ }
+    try { await withTimeout(idbSet("state", JSON.parse(JSON.stringify(state))), 4000); } catch (e) { /* localStorage copy remains */ }
   }
 
   /* =====================================================================
@@ -851,10 +857,10 @@
       '<p class="muted">ആദ്യമായി വരുന്നവർ ഇവിടെ ഒരു പിൻ ഉണ്ടാക്കുക. ഓർത്തുവെക്കണം — മറ്റാർക്കും പറഞ്ഞുകൊടുക്കരുത്. മറന്നാൽ ഉസ്താദ് റീസെറ്റ് ചെയ്യും.</p></div>' +
       '<p id="errLogin" class="err" hidden></p>' +
       '<button type="button" class="btn block" data-act="login">പ്രവേശനം</button>' +
-      '<details class="bulk"><summary>ഉസ്താദ് / അഡ്മിൻ</summary><div class="stack" style="margin-top:8px">' +
-      '<input id="inStaff" class="input" type="password" autocomplete="off" placeholder="നിങ്ങളുടെ കോഡ് / പാസ്‌വേഡ്" />' +
+      '<details class="bulk"><summary>ഉസ്താദ്</summary><div class="stack" style="margin-top:8px">' +
+      '<input id="inStaff" class="input" type="password" autocomplete="off" placeholder="നിങ്ങളുടെ കോഡ്" />' +
       '<p id="errStaff" class="err" hidden></p>' +
-      '<div class="grid2 keep"><button type="button" class="btn" data-act="login-ustad">ഉസ്താദ്</button><button type="button" class="btn ghost" data-act="login-admin">അഡ്മിൻ</button></div>' +
+      '<button type="button" class="btn block" data-act="login-staff">പ്രവേശിക്കുക</button>' +
       "</div></details></section>";
   }
 
@@ -937,6 +943,11 @@
     loginBusy = true;
     try {
       state.auth = null;
+      // ഒറ്റ ഫീൽഡ്: ഉസ്താദ് കോഡ് ആണെങ്കിൽ ഉസ്താദ്, അല്ലെങ്കിൽ അഡ്മിൻ പാസ്‌വേഡ് ആയി പരിശോധിക്കും
+      if (kind === "auto") {
+        const mj0 = await fetchJson("ustads", qBy("code", code));
+        kind = Object.values(mj0 || {}).some((x) => x && !x.deleted) ? "ustad" : "admin";
+      }
       if (kind === "admin") {
         if (isPlaceholder(CFG.ADMIN_EMAIL)) return err("ആപ്പ് സജ്ജീകരണം പൂർത്തിയായിട്ടില്ല (admin e-mail ചേർക്കണം).");
         const j = await authCall("signInWithPassword", { email: CFG.ADMIN_EMAIL, password: code, returnSecureToken: true });
@@ -1313,6 +1324,7 @@
       if (online() && state.session && Object.keys(state.dirty).some(pushable)) { try { await Promise.race([sync(true), new Promise((r) => setTimeout(r, 6000))]); } catch (e) { /* ignore */ } }
       state.session = null; state.auth = null; persist(); render();
     },
+    "login-staff"() { staffLogin("auto"); },
     "login-ustad"() { staffLogin("ustad"); },
     "login-admin"() { staffLogin("admin"); },
     tab(el) { state.ui.tab = el.dataset.tab; persist(); render(); window.scrollTo(0, 0); },
@@ -1875,7 +1887,7 @@
     document.addEventListener("keydown", (ev) => {
       if (ev.key === "Escape" && modal) { closeModal(); return; }
       if (ev.key === "Enter" && !state.session && (ev.target.id === "inName" || ev.target.id === "inCode" || ev.target.id === "inPin")) { ev.preventDefault(); loginSubmit(); }
-      if (ev.key === "Enter" && !state.session && ev.target.id === "inStaff") { ev.preventDefault(); staffLogin("ustad"); }
+      if (ev.key === "Enter" && !state.session && ev.target.id === "inStaff") { ev.preventDefault(); staffLogin("auto"); }
       if (ev.key === "Enter" && modal && ev.target.tagName === "INPUT") { ev.preventDefault(); actions["modal-ok"](); }
     });
 
@@ -1896,6 +1908,12 @@
     wire();
     validateSession();
     render();
+    if (!loadOk) {
+      showToast("ഡാറ്റ വായിക്കാൻ കഴിഞ്ഞില്ല. ആപ്പ് പൂർണമായി അടച്ച് വീണ്ടും തുറക്കുക.", true);
+      const t = setInterval(async () => {
+        try { const v = await withTimeout(idbGet("state"), 5000); clearInterval(t); location.reload(); } catch (e) { /* retry */ }
+      }, 4000);
+    }
 
     if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
       navigator.serviceWorker.register("sw.js").catch(() => {});
