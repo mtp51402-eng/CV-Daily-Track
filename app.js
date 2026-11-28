@@ -228,6 +228,10 @@
       state.ui = Object.assign(base.ui, saved.ui || {});
       ["madrasas", "ustads", "students", "records", "board", "hasPin", "dirty"].forEach((k) => { if (!state[k] || typeof state[k] !== "object") state[k] = base[k]; });
     }
+    // സേവ് ചെയ്ത ഡാറ്റയിൽ ലോഗിൻ ഇല്ലെങ്കിൽ പ്രത്യേക കോപ്പിയിൽ നിന്ന് തിരിച്ചെടുക്കും
+    if (!state.session) {
+      try { const mr = JSON.parse(localStorage.getItem("mt_sess") || "null"); if (mr && mr.session && mr.session.role) { state.session = mr.session; state.auth = mr.auth || null; } } catch (e) { /* ignore */ }
+    }
     ["m_seed1", "m_seed2"].forEach((k) => { if (state.madrasas[k] && !state.madrasas[k].updatedAt) delete state.madrasas[k]; });
     if (state.ustads.u_seed1 && !state.ustads.u_seed1.updatedAt) delete state.ustads.u_seed1;
     // Always open on today's date
@@ -236,6 +240,7 @@
     state.ui.lbMonth = todayIso().slice(0, 7);
   }
 
+  const clearMirror = () => { try { localStorage.removeItem("mt_sess"); } catch (e) { /* ignore */ } };
   function persist() {
     clearTimeout(persistTimer);
     persistTimer = setTimeout(persistNow, 250);
@@ -243,6 +248,8 @@
   async function persistNow() {
     clearTimeout(persistTimer);
     if (!loadOk) return;
+    // ലോഗിൻ വിവരം പ്രത്യേകം ഒരു ചെറിയ കോപ്പിയായും സൂക്ഷിക്കുന്നു (ലോഗൗട്ട് ബട്ടൺ അമർത്തുന്നത് വരെ)
+    try { if (state.session) localStorage.setItem("mt_sess", JSON.stringify({ session: state.session, auth: state.auth })); else localStorage.removeItem("mt_sess"); } catch (e) { /* ignore */ }
     state.savedAt = Date.now();
     try { localStorage.setItem("mt_state_v2", JSON.stringify(state)); } catch (e) { /* storage full */ }
     if (lsOnly() || idbSkip) return;
@@ -524,7 +531,12 @@
       body: "grant_type=refresh_token&refresh_token=" + enc(a.refreshToken)
     });
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) { const e = new Error("AUTH"); e.status = 401; throw e; }
+    if (!r.ok) {
+      // യഥാർത്ഥത്തിൽ ടോക്കൺ അസാധുവായാൽ മാത്രം ലോഗൗട്ട്; നെറ്റ്‌വർക്ക്/സെർവർ തകരാറുകൾക്ക് ലോഗൗട്ട് ഇല്ല
+      const code = String(((j || {}).error || {}).message || "");
+      if (r.status === 400 && /INVALID_REFRESH_TOKEN|TOKEN_EXPIRED|USER_DISABLED|USER_NOT_FOUND/.test(code)) { const e = new Error("AUTH"); e.status = 401; throw e; }
+      const e2 = new Error("HTTP " + r.status); e2.status = r.status; throw e2;
+    }
     state.auth = { idToken: j.id_token, refreshToken: j.refresh_token || a.refreshToken, exp: Date.now() + (Number(j.expires_in) || 3600) * 1000, uid: j.user_id || a.uid };
     persist();
     return state.auth.idToken;
@@ -698,7 +710,7 @@
     try { await push(); } catch (e) { fail(e); }
     try { changed = await pull(); } catch (e) { fail(e); }
     if (kicked) {
-      state.session = null; state.auth = null;
+      state.session = null; state.auth = null; clearMirror();
       syncing = false; syncState = "idle";
       persist(); render();
       showToast(kicked, true);
@@ -714,6 +726,7 @@
   }
 
   // If the account was removed remotely (or a pre-PIN session is found), sign out
+  let badStreak = 0;
   function validateSession() {
     const s = state.session;
     if (!s || s.role === "admin") return;
@@ -724,8 +737,10 @@
       if (!s.key) bad = true;
       const st = state.students[s.mid] && state.students[s.mid][s.userId]; if (st && st.deleted) bad = true;
     }
+    if (!bad) { badStreak = 0; return; }
+    if (++badStreak < 2) return; // ഒറ്റ തവണ ഡാറ്റ കിട്ടാതിരുന്നാൽ ലോഗൗട്ട് ചെയ്യരുത്
     if (bad) {
-      state.session = null; state.auth = null;
+      state.session = null; state.auth = null; clearMirror();
       persist();
       showToast("ഈ അക്കൗണ്ട് ഇപ്പോൾ സജീവമല്ല. വീണ്ടും പ്രവേശിക്കുക.", true);
       render();
@@ -1324,7 +1339,7 @@
     login: loginSubmit,
     async logout() {
       if (online() && state.session && Object.keys(state.dirty).some(pushable)) { try { await Promise.race([sync(true), new Promise((r) => setTimeout(r, 6000))]); } catch (e) { /* ignore */ } }
-      state.session = null; state.auth = null; persist(); render();
+      state.session = null; state.auth = null; clearMirror(); persist(); render();
     },
     "login-staff"() { staffLogin("auto"); },
     "login-ustad"() { staffLogin("ustad"); },
